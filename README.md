@@ -53,7 +53,8 @@ lint-check
 │   ├── refactor/      ← /refactor — refatoracao guiada
 │   ├── test/          ← /test — gerar/rodar testes
 │   ├── security/      ← /security-audit — auditoria
-│   └── debug/         ← /debug — investigar bugs
+│   ├── debug/         ← /debug — investigar bugs
+│   └── handoff/       ← /handoff — salvar contexto entre sessoes
 └── rules/
     ├── python.md      ← ativado em *.py
     ├── typescript.md  ← ativado em *.ts/*.tsx/*.js/*.jsx
@@ -93,12 +94,13 @@ O agente de **security** opera em modo read-only — analisa e reporta mas nao e
 
 | Comando | O que faz |
 |---------|-----------|
-| `/review` | Code review completo (correcao, seguranca, performance, legibilidade) |
+| `/review` | Code review estruturado com veredicto formal (PASS/FAIL/NEEDS DISCUSSION) |
 | `/ship` | Pipeline completo: lint → test → build → commit |
 | `/refactor` | Analise e refatoracao com plano antes de executar |
 | `/test` | Gera testes ou roda suite existente |
 | `/security-audit` | Auditoria de seguranca (secrets, vulnerabilidades, deps) |
 | `/debug` | Investiga bug: reproduz → isola → diagnostica → corrige |
+| `/handoff` | Salva contexto da sessao atual para continuar em outra sessao |
 
 ### Exemplos
 ```
@@ -109,6 +111,7 @@ O agente de **security** opera em modo read-only — analisa e reporta mas nao e
 /test run
 /security-audit full
 /debug "erro 500 no endpoint /api/users"
+/handoff
 ```
 
 ---
@@ -120,6 +123,7 @@ O agente de **security** opera em modo read-only — analisa e reporta mas nao e
 | **Lint** | PostToolUse (Write/Edit) | Formata codigo automaticamente |
 | **Protecao** | PreToolUse (Write/Edit) | Bloqueia edicao de .env, credentials, secrets, .pem, .key |
 | **Contexto** | SessionStart | Injeta resumo de capacidades na sessao |
+| **Reforco** | UserPromptSubmit (a cada 5 prompts) | Re-injeta regras criticas para combater esquecimento |
 | **Memoria** | PreCompact | Preserva lembretes apos compactacao de contexto |
 | **Pendencias** | Stop | Detecta TODOs/FIXMEs e pergunta se quer continuar |
 
@@ -147,6 +151,27 @@ Rules sao carregadas **sob demanda** quando o Claude le arquivos que batem com o
 | `sql.md` | `**/*.sql` | Keywords uppercase, CTEs, indexacao, naming |
 | `security.md` | `**/*` | OWASP, sanitizacao, secrets, HTTPS |
 | `testing.md` | Arquivos de teste | AAA, nomes descritivos, fixtures, edge cases |
+
+---
+
+## Padroes comportamentais (inspirados no Ring)
+
+O CLAUDE.md inclui padroes avancados de engenharia de prompt:
+
+### Regra dos 3 arquivos
+Se uma tarefa exige ler/editar mais de 3 arquivos, o Claude delega automaticamente para um sub-agente. Isso previne estouro de contexto.
+
+### Hierarquia de duvidas
+Antes de perguntar ao usuario, o Claude tenta resolver sozinho: contexto da conversa → CLAUDE.md → codigo existente → boas praticas → so entao pergunta.
+
+### Anti-racionalizacao
+Tabela de "pensamentos-armadilha" que o Claude deve reconhecer e evitar. Exemplo: "O codigo parece limpo" nao e motivo para pular revisao.
+
+### Resistencia a pressao
+Se o usuario pedir para pular testes ou revisao, o Claude sugere o minimo viavel em vez de obedecer cegamente.
+
+### Reforco periodico
+A cada 5 prompts, um hook re-injeta regras criticas no contexto para combater o "esquecimento" em sessoes longas.
 
 ---
 
@@ -245,7 +270,8 @@ dotfiles/
 │   │   ├── refactor/SKILL.md
 │   │   ├── test/SKILL.md
 │   │   ├── security/SKILL.md
-│   │   └── debug/SKILL.md
+│   │   ├── debug/SKILL.md
+│   │   └── handoff/SKILL.md
 │   └── rules/
 │       ├── python.md
 │       ├── typescript.md
