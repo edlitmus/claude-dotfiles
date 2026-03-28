@@ -98,6 +98,17 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); COUNT_FILE=\"/tmp/.claude_prompt_count_$$\"; [ ! -f \"$COUNT_FILE\" ] && echo 0 > \"$COUNT_FILE\"; COUNT=$(cat \"$COUNT_FILE\"); COUNT=$((COUNT + 1)); echo \"$COUNT\" > \"$COUNT_FILE\"; if [ $((COUNT % 5)) -eq 0 ]; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"REFORÇO PERIÓDICO: Responda em PT-BR. Regra dos 3 arquivos ativa (>3 = sub-agente). Consulte hierarquia de dúvidas antes de perguntar. Anti-racionalização ativa. Skills: /review /ship /refactor /test /security-audit /debug /handoff.\"}}'; fi",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
