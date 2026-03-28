@@ -1,4 +1,56 @@
 {
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(npm run *)",
+      "Bash(npm test*)",
+      "Bash(npx *)",
+      "Bash(pytest*)",
+      "Bash(python -m pytest*)",
+      "Bash(go test *)",
+      "Bash(go build *)",
+      "Bash(ruff *)",
+      "Bash(gofmt *)",
+      "Bash(golangci-lint *)",
+      "Bash(sqlfluff *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git show*)",
+      "Bash(git blame*)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(echo *)",
+      "Bash(which *)",
+      "Bash(command -v *)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf ~/*)",
+      "Bash(> /dev/sda*)",
+      "Bash(mkfs*)",
+      "Bash(dd if=*)",
+      "Bash(:(){ :|:& };:)",
+      "Bash(git push --force origin main)",
+      "Bash(git push --force origin master)",
+      "Bash(git push -f origin main)",
+      "Bash(git push -f origin master)",
+      "Bash(git reset --hard origin/*)",
+      "Bash(chmod -R 777 *)",
+      "Bash(curl * | bash)",
+      "Bash(curl * | sh)",
+      "Bash(wget * | bash)",
+      "Bash(wget * | sh)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -6,8 +58,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Edição de arquivos sensíveis bloqueada pelo hook de proteção\"}}' >&2; exit 2",
-            "if": "Edit(.env*)|Write(.env*)|Edit(.git/*)|Write(.git/*)|Edit(*credentials*)|Write(*credentials*)|Edit(*secret*)|Write(*secret*)"
+            "command": "INPUT=$(cat); FILE=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // (.tool_input.edits[0].file_path // empty)' 2>/dev/null); case \"$FILE\" in *.env|*.env.*|*credentials*|*secret*|*.pem|*.key|*id_rsa*) echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"🔒 Arquivo sensível protegido pelo hook. Edite manualmente se necessário.\"}}'; exit 0;; .git/*|.claude/settings.json) echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"🔒 Arquivo de configuração protegido.\"}}'; exit 0;; esac",
+            "timeout": 5
           }
         ]
       }
@@ -29,7 +81,30 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Hook de lint ativo: arquivos .py .ts .tsx .js .jsx .go .sql serão formatados automaticamente após cada edição. Arquivos .env e credenciais estão protegidos contra edição.\"}}'"
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Hooks ativos: lint automático (.py .ts .tsx .js .jsx .go .sql), proteção de arquivos sensíveis (.env, credentials, secrets, .pem, .key). Agentes disponíveis: frontend, backend, database, architect, devops, security. Skills: /review, /ship, /refactor, /test, /security-audit, /debug. Responda sempre em português brasileiro.\"}}'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreCompact\",\"additionalContext\":\"LEMBRETE PÓS-COMPACTAÇÃO: Responda em PT-BR. Hooks de lint e proteção estão ativos. Agentes: frontend, backend, database, architect, devops, security. Skills: /review, /ship, /refactor, /test, /security-audit, /debug.\"}}'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); ACTIVE=$(echo \"$INPUT\" | jq -r '.stop_hook_active' 2>/dev/null); [ \"$ACTIVE\" = \"true\" ] && exit 0; MSG=$(echo \"$INPUT\" | jq -r '.last_assistant_message // empty' 2>/dev/null); echo \"$MSG\" | grep -qi 'todo\\|pendente\\|falta\\|TODO\\|FIXME' && echo '{\"continue\":true,\"stopReason\":\"Detectei itens pendentes (TODO/FIXME) na resposta. Verifique se deseja continuar.\"}' || exit 0",
+            "timeout": 5
           }
         ]
       }
