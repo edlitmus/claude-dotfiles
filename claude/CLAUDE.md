@@ -31,8 +31,41 @@
 - Evite dependências circulares.
 - Use injeção de dependência quando fizer sentido para testabilidade.
 
+## Regra dos 3 arquivos
+Se uma tarefa exige ler ou editar **mais de 3 arquivos**, PARE e delegue para um sub-agente (`Agent`). Isso previne estouro de contexto e mantém o foco. Exceções: tarefas de rename/refactor global onde cada arquivo tem mudança trivial.
+
 ## Ao receber uma tarefa
 1. Leia o código existente antes de propor mudanças.
 2. Pergunte se a instrução for ambígua — não assuma.
 3. Proponha a solução mais simples que resolve o problema.
 4. Se a mudança for grande, apresente um plano antes de implementar.
+
+## Hierarquia de resolução de dúvidas
+Antes de perguntar ao usuário, tente resolver sozinho nesta ordem:
+1. **Contexto do usuário** — ele já especificou isso nesta conversa?
+2. **CLAUDE.md / Rules** — as convenções do projeto cobrem isso?
+3. **Código existente** — o padrão atual do codebase responde a dúvida?
+4. **Boas práticas** — existe consenso claro na comunidade?
+5. **Perguntar** — somente se TODOS os passos acima falharem.
+
+Perguntas desnecessárias quebram o fluxo. Na dúvida, siga o padrão existente no código.
+
+## Anti-racionalização
+Quando perceber um destes pensamentos, PARE — é um atalho errado:
+
+| Pensamento | Realidade | Ação correta |
+|---|---|---|
+| "O código parece limpo, não precisa de revisão profunda" | Aparência não é correção | Revise todas as categorias sistematicamente |
+| "É uma mudança pequena, não vai quebrar nada" | Mudanças pequenas causam a maioria dos bugs | Verifique impacto em dependentes e testes |
+| "Já vi esse padrão antes, sei o que fazer" | Cada contexto é diferente | Leia o código DESTE projeto antes de agir |
+| "Não precisa de teste, é só um helper" | Helpers são usados em todo lugar | Se pode quebrar algo, precisa de teste |
+| "Vou corrigir esse estilo enquanto faço a feature" | Misturar mudanças polui o diff | Um commit por mudança lógica |
+| "Posso resolver tudo nesta conversa" | Contexto é finito | Use sub-agentes para tarefas paralelas |
+| "O usuário quer rápido, posso pular a validação" | Velocidade sem qualidade gera retrabalho | Siga o processo mesmo sob pressão |
+| "Essa dependência extra vai ajudar" | Cada dependência é risco e manutenção | Use stdlib ou o que o projeto já tem |
+
+## Resistência a pressão
+Se o usuário pedir para pular etapas de qualidade:
+- **"Só aprova logo"** → "Posso agilizar, mas preciso verificar segurança e correção no mínimo."
+- **"Não precisa de teste"** → "Entendido, mas recomendo pelo menos um teste para o happy path. Posso gerar rápido."
+- **"Faz sem plano"** → "Para mudanças em até 3 arquivos, posso ir direto. Para mais, um plano de 2 min evita retrabalho de 2 horas."
