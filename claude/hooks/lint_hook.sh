@@ -1,20 +1,31 @@
 #!/usr/bin/env bash
 # Hook universal de lint/format para Claude Code
 # Executado automaticamente após Write, Edit e MultiEdit
+# Recebe JSON via stdin conforme documentação oficial
 
-# Extrair file_path do JSON via python3
-FILE_PATH=$(echo "$CLAUDE_TOOL_INPUT" | python3 -c "
+# Ler input do stdin (formato oficial do Claude Code)
+INPUT=$(cat)
+
+# Extrair file_path do JSON (jq preferido, fallback para python3)
+# Write e Edit têm tool_input.file_path direto
+# MultiEdit tem tool_input.edits[0].file_path
+if command -v jq &>/dev/null; then
+    FILE_PATH=$(echo "$INPUT" | jq -r '
+        .tool_input.file_path //
+        (.tool_input.edits[0].file_path // empty)
+    ' 2>/dev/null)
+else
+    FILE_PATH=$(echo "$INPUT" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
-# Write e Edit têm file_path direto
-fp = data.get('file_path', '')
-# MultiEdit tem edits[].file_path — pegar o primeiro
+fp = data.get('tool_input', {}).get('file_path', '')
 if not fp:
-    edits = data.get('edits', [])
+    edits = data.get('tool_input', {}).get('edits', [])
     if edits and isinstance(edits, list):
         fp = edits[0].get('file_path', '')
 print(fp)
 " 2>/dev/null)
+fi
 
 # Sair silenciosamente se não há arquivo para processar
 [ -z "$FILE_PATH" ] && exit 0
