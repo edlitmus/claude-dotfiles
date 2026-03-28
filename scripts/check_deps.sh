@@ -21,6 +21,7 @@ check_tool() {
     fi
 }
 
+check_tool "jq"             "sudo apt install jq (ou brew install jq)"
 check_tool "ruff"           "pip install ruff"
 check_tool "sqlfluff"       "pip install sqlfluff"
 check_tool "golangci-lint"  "go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"

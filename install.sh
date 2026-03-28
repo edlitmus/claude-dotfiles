@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Instalador de dotfiles — cria symlinks e configura o ambiente
+# Instalador de dotfiles — cria symlinks (ou cópias no Windows) e configura o ambiente
 # Idempotente: pode rodar múltiplas vezes sem efeitos colaterais
 
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -13,30 +13,37 @@ echo ""
 
 ACTIONS=()
 
+# Detectar SO para escolher entre symlink e cópia
+link_file() {
+    local source="$1"
+    local target="$2"
+    local name="$3"
+
+    if [ -L "$target" ] && [ "$(readlink -f "$target")" = "$(readlink -f "$source")" ]; then
+        echo "[ok] $name — symlink já existe"
+        return
+    fi
+
+    # Tentar symlink primeiro; fallback para cópia no Windows/MSYS
+    if ln -sf "$source" "$target" 2>/dev/null && [ -L "$target" ]; then
+        echo "[+]  $name → $target (symlink)"
+        ACTIONS+=("Criado symlink $name")
+    else
+        cp -f "$source" "$target"
+        echo "[+]  $name → $target (cópia — symlinks indisponíveis)"
+        echo "     ⚠️  Rode 'bash install.sh' após git pull para sincronizar"
+        ACTIONS+=("Copiado $name (symlink indisponível)")
+    fi
+}
+
 # 1. Criar diretórios necessários
 mkdir -p "$HOOKS_DIR"
 
-# 2. Symlink: settings.json
-SOURCE="$DOTFILES_DIR/claude/settings.json"
-TARGET="$CLAUDE_DIR/settings.json"
-if [ -L "$TARGET" ] && [ "$(readlink -f "$TARGET")" = "$(readlink -f "$SOURCE")" ]; then
-    echo "[ok] settings.json — symlink já existe"
-else
-    ln -sf "$SOURCE" "$TARGET"
-    echo "[+]  settings.json → $TARGET"
-    ACTIONS+=("Criado symlink settings.json")
-fi
+# 2. Instalar settings.json
+link_file "$DOTFILES_DIR/claude/settings.json" "$CLAUDE_DIR/settings.json" "settings.json"
 
-# 3. Symlink: lint_hook.sh
-SOURCE="$DOTFILES_DIR/claude/hooks/lint_hook.sh"
-TARGET="$HOOKS_DIR/lint_hook.sh"
-if [ -L "$TARGET" ] && [ "$(readlink -f "$TARGET")" = "$(readlink -f "$SOURCE")" ]; then
-    echo "[ok] lint_hook.sh — symlink já existe"
-else
-    ln -sf "$SOURCE" "$TARGET"
-    echo "[+]  lint_hook.sh → $TARGET"
-    ACTIONS+=("Criado symlink lint_hook.sh")
-fi
+# 3. Instalar lint_hook.sh
+link_file "$DOTFILES_DIR/claude/hooks/lint_hook.sh" "$HOOKS_DIR/lint_hook.sh" "lint_hook.sh"
 
 # 4. Garantir executável
 chmod +x "$DOTFILES_DIR/claude/hooks/lint_hook.sh"
