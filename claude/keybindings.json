@@ -1,0 +1,28 @@
+{
+  "bindings": [
+    {
+      "keys": "ctrl+k ctrl+r",
+      "action": "run-skill",
+      "args": "review",
+      "context": "input"
+    },
+    {
+      "keys": "ctrl+k ctrl+t",
+      "action": "run-skill",
+      "args": "test",
+      "context": "input"
+    },
+    {
+      "keys": "ctrl+k ctrl+s",
+      "action": "run-skill",
+      "args": "ship",
+      "context": "input"
+    },
+    {
+      "keys": "ctrl+k ctrl+d",
+      "action": "run-skill",
+      "args": "debug",
+      "context": "input"
+    }
+  ]
+}
