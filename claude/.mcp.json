@@ -3,7 +3,10 @@
     "github": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
       }
@@ -11,7 +14,23 @@
     "filesystem": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "${HOME}/projects"]
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${HOME}/projects"
+      ]
+    },
+    "postgres": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "${DATABASE_URL}"
+      ],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}"
+      }
     }
   }
 }
