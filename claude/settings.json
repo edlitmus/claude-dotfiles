@@ -101,7 +101,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Hooks ativos: lint automático (.py .ts .tsx .js .jsx .go .sql), proteção de arquivos sensíveis (.env, credentials, secrets, .pem, .key). Agentes disponíveis: frontend, backend, database, architect, devops, security. Skills: /review, /ship, /refactor, /test, /security-audit, /debug. Responda sempre em português brasileiro.\"}}'",
+            "command": "~/.claude/hooks/session_start.sh",
             "timeout": 5
           }
         ]
