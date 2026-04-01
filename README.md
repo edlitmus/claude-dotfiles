@@ -39,7 +39,10 @@ lint-check
 ├── .mcp.json          ← GitHub MCP server
 ├── keybindings.json   ← atalhos de teclado
 ├── hooks/
-│   └── lint_hook.sh   ← lint automatico pos-edicao
+│   ├── lint_hook.sh       ← lint automatico pos-edicao
+│   ├── bash_security.sh   ← bloqueio de comandos perigosos
+│   ├── secret_scan.sh     ← deteccao de credenciais em codigo
+│   └── session_start.sh   ← deteccao automatica de stack
 ├── agents/
 │   ├── frontend.md    ← UI, React, acessibilidade
 │   ├── backend.md     ← APIs, auth, services
@@ -52,9 +55,11 @@ lint-check
 │   ├── ship/          ← /ship — lint+test+build+commit
 │   ├── refactor/      ← /refactor — refatoracao guiada
 │   ├── test/          ← /test — gerar/rodar testes
-│   ├── security/      ← /security-audit — auditoria
+│   ├── security/      ← /security — auditoria
 │   ├── debug/         ← /debug — investigar bugs
-│   └── handoff/       ← /handoff — salvar contexto entre sessoes
+│   ├── handoff/       ← /handoff — salvar contexto entre sessoes
+│   ├── compact/       ← /compact — resumir sessao para liberar contexto
+│   └── perf/          ← /perf — analise de performance
 └── rules/
     ├── python.md      ← ativado em *.py
     ├── typescript.md  ← ativado em *.ts/*.tsx/*.js/*.jsx
@@ -98,9 +103,11 @@ O agente de **security** opera em modo read-only — analisa e reporta mas nao e
 | `/ship` | Pipeline completo: lint → test → build → commit |
 | `/refactor` | Analise e refatoracao com plano antes de executar |
 | `/test` | Gera testes ou roda suite existente |
-| `/security-audit` | Auditoria de seguranca (secrets, vulnerabilidades, deps) |
+| `/security` | Auditoria de seguranca (secrets, vulnerabilidades, deps) |
 | `/debug` | Investiga bug: reproduz → isola → diagnostica → corrige |
 | `/handoff` | Salva contexto da sessao atual para continuar em outra sessao |
+| `/compact` | Resume sessao atual em bloco estruturado para liberar contexto |
+| `/perf` | Analise de performance: N+1, O(n²), re-renders, cache, I/O |
 
 ### Exemplos
 ```
@@ -109,7 +116,7 @@ O agente de **security** opera em modo read-only — analisa e reporta mas nao e
 /refactor src/utils/helpers.ts
 /test src/services/user.service.ts
 /test run
-/security-audit full
+/security full
 /debug "erro 500 no endpoint /api/users"
 /handoff
 ```
@@ -121,8 +128,10 @@ O agente de **security** opera em modo read-only — analisa e reporta mas nao e
 | Hook | Evento | O que faz |
 |------|--------|-----------|
 | **Lint** | PostToolUse (Write/Edit) | Formata codigo automaticamente |
+| **Bash Security** | PreToolUse (Bash) | Bloqueia comandos perigosos (fork bombs, pipes para shell, etc) |
+| **Secret Scanner** | PostToolUse (Write/Edit) | Detecta credenciais vazadas em codigo |
 | **Protecao** | PreToolUse (Write/Edit) | Bloqueia edicao de .env, credentials, secrets, .pem, .key |
-| **Contexto** | SessionStart | Injeta resumo de capacidades na sessao |
+| **Contexto** | SessionStart | Detecta stack do projeto e injeta capacidades na sessao |
 | **Reforco** | UserPromptSubmit (a cada 5 prompts) | Re-injeta regras criticas para combater esquecimento |
 | **Memoria** | PreCompact | Preserva lembretes apos compactacao de contexto |
 | **Pendencias** | Stop | Detecta TODOs/FIXMEs e pergunta se quer continuar |
@@ -196,14 +205,17 @@ A cada 5 prompts, um hook re-injeta regras criticas no contexto para combater o 
 
 ## MCP Servers
 
-Pre-configurado com GitHub MCP. Para ativar:
+Pre-configurado com GitHub e PostgreSQL MCP. Para ativar:
 
 ```bash
 # Adicione ao seu .bashrc ou .env
 export GITHUB_TOKEN='ghp_seu_token_aqui'
+export DATABASE_URL='postgresql://user:pass@localhost:5432/dev'
 ```
 
-Isso habilita o Claude a interagir com issues, PRs e repos do GitHub diretamente.
+- **GitHub**: interacao com issues, PRs e repos diretamente.
+- **PostgreSQL**: consulta de schemas, SELECTs e analise de indices durante debug (use apenas em banco de dev).
+- **Filesystem**: acesso controlado a `~/projects`.
 
 ---
 
@@ -256,7 +268,10 @@ dotfiles/
 │   ├── .mcp.json              ← MCP servers
 │   ├── keybindings.json       ← atalhos
 │   ├── hooks/
-│   │   └── lint_hook.sh       ← hook de lint
+│   │   ├── lint_hook.sh       ← hook de lint
+│   │   ├── bash_security.sh   ← seguranca de comandos
+│   │   ├── secret_scan.sh     ← scanner de credenciais
+│   │   └── session_start.sh   ← deteccao de stack
 │   ├── agents/
 │   │   ├── frontend.md
 │   │   ├── backend.md
@@ -271,7 +286,9 @@ dotfiles/
 │   │   ├── test/SKILL.md
 │   │   ├── security/SKILL.md
 │   │   ├── debug/SKILL.md
-│   │   └── handoff/SKILL.md
+│   │   ├── handoff/SKILL.md
+│   │   ├── compact/SKILL.md
+│   │   └── perf/SKILL.md
 │   └── rules/
 │       ├── python.md
 │       ├── typescript.md
