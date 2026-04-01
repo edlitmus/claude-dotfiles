@@ -23,6 +23,24 @@
       "action": "run-skill",
       "args": "debug",
       "context": "input"
+    },
+    {
+      "keys": "ctrl+k ctrl+e",
+      "action": "run-skill",
+      "args": "explore",
+      "context": "input"
+    },
+    {
+      "keys": "ctrl+k ctrl+p",
+      "action": "run-skill",
+      "args": "perf",
+      "context": "input"
+    },
+    {
+      "keys": "ctrl+k ctrl+b",
+      "action": "run-skill",
+      "args": "brainstorm",
+      "context": "input"
     }
   ]
 }
