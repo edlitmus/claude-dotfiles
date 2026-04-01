@@ -111,10 +111,39 @@ else
 fi
 echo ""
 
-# --- 8. Verificar dependências ---
+# --- 8. Validação pós-instalação ---
+echo "🔍 Validando instalação..."
+VALIDATION_ERRORS=0
+
+# Verificar permissões de hooks
+for hook in "$HOOKS_DIR"/*.sh; do
+    [ ! -e "$hook" ] && continue
+    if [ ! -x "$hook" ]; then
+        chmod +x "$hook"
+        echo "  [fix] Permissão corrigida: $(basename "$hook")"
+    fi
+done
+
+# Validar JSONs
+if command -v jq &>/dev/null; then
+    for json_file in "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR/keybindings.json" "$CLAUDE_DIR/.mcp.json"; do
+        if [ -f "$json_file" ] && ! jq empty "$json_file" 2>/dev/null; then
+            echo "  [ERRO] JSON inválido: $(basename "$json_file")"
+            VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+        fi
+    done
+fi
+
+if [ "$VALIDATION_ERRORS" -eq 0 ]; then
+    echo "  [ok] Todos os arquivos validados com sucesso"
+fi
+echo ""
+
+
+# --- 9. Verificar dependências ---
 bash "$DOTFILES_DIR/scripts/check_deps.sh"
 
-# --- 9. Resumo ---
+# --- 10. Resumo ---
 echo ""
 echo "╔══════════════════════════════════════════╗"
 echo "║              Resumo                      ║"
@@ -134,9 +163,9 @@ echo "  • CLAUDE.md          — convenções globais"
 echo "  • settings.json      — hooks + permissions"
 echo "  • .mcp.json          — GitHub MCP server"
 echo "  • keybindings.json   — atalhos de teclado"
-echo "  • 1 hook             — lint automático"
+echo "  • 3 hooks            — lint automático, bash security, secret scanner"
 echo "  • 6 agents           — frontend, backend, database, architect, devops, security"
-echo "  • 7 skills           — /review, /ship, /refactor, /test, /security-audit, /debug, /handoff"
+echo "  • 9 skills           — /review, /ship, /refactor, /test, /security, /debug, /handoff, /compact, /perf"
 echo "  • 6 rules            — python, typescript, go, sql, security, testing"
 echo ""
 echo "⚠️  Configure GITHUB_TOKEN para o MCP GitHub funcionar:"
