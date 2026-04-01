@@ -84,6 +84,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/secret_scan.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "SessionStart": [
