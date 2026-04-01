@@ -40,15 +40,47 @@ Se uma tarefa exige ler ou editar **mais de 3 arquivos**, PARE e delegue para um
 3. Proponha a solução mais simples que resolve o problema.
 4. Se a mudança for grande, apresente um plano antes de implementar.
 
-## Hierarquia de resolução de dúvidas
-Antes de perguntar ao usuário, tente resolver sozinho nesta ordem:
-1. **Contexto do usuário** — ele já especificou isso nesta conversa?
-2. **CLAUDE.md / Rules** — as convenções do projeto cobrem isso?
-3. **Código existente** — o padrão atual do codebase responde a dúvida?
-4. **Boas práticas** — existe consenso claro na comunidade?
-5. **Perguntar** — somente se TODOS os passos acima falharem.
+## Taxonomia de ambiguidade
+Antes de perguntar, classifique a dúvida:
 
-Perguntas desnecessárias quebram o fluxo. Na dúvida, siga o padrão existente no código.
+### 1. Parar e perguntar
+Quando o fato é **ausente** e a ação é **irreversível ou custosa**.
+- Exemplo: "Deletar essa tabela?" — pergunte SEMPRE.
+- Exemplo: "Qual banco de dados usar?" — informação de negócio ausente.
+
+### 2. Prosseguir com julgamento
+Quando existem **múltiplos caminhos válidos** com **default razoável**.
+- Exemplo: "Usar tabs ou spaces?" — siga o padrão do codebase.
+- **Parar quando um default razoável existe atrasa o usuário.**
+
+### 3. Escalar com recomendação
+Quando a ambiguidade é **genuína** com **interpretações diferentes**.
+- Exemplo: "Adicionar cache" — pode ser Redis, in-memory, HTTP cache.
+- Apresente opções com trade-offs, não escolha sozinho.
+
+### Ordem de resolução (antes de classificar)
+1. **Contexto da conversa** — o usuário já especificou?
+2. **CLAUDE.md / Rules** — as convenções cobrem?
+3. **Código existente** — o padrão do codebase responde?
+4. **Boas práticas** — consenso claro na comunidade?
+5. **Classificar** — use a taxonomia acima.
+
+## Auto-triggers de agentes
+Frases que OBRIGAM o uso de sub-agentes (via skill /dispatch):
+
+| Frase do usuário | Agente | Motivo |
+|---|---|---|
+| "find where", "search for", "locate" | Explore | Busca ampla em codebase |
+| "fix issues", "fix remaining" | Backend/Frontend | Fix requer implementação |
+| "how does X work", "explain the flow" | Explore | Compreensão requer análise |
+| "refactor", "update across", "rename" | Backend/Frontend | Refator toca múltiplos arquivos |
+| "review this", "check quality" | /review | Review é skill dedicada |
+| "design", "propose architecture" | Architect | Decisão arquitetural |
+| "check security", "audit" | Security | Análise de segurança |
+| "optimize query", "fix migration" | Database | Especialista em dados |
+| "deploy", "docker", "CI/CD" | DevOps | Infraestrutura |
+
+Estas frases + **regra dos 3 arquivos** formam o sistema de orquestração automática.
 
 ## Anti-racionalização
 Quando perceber um destes pensamentos, PARE — é um atalho errado:
