@@ -12,6 +12,12 @@ paths:
 - Autenticação: use bcrypt/argon2 para senhas; nunca MD5/SHA1.
 - HTTPS obrigatório em produção.
 - Logs: nunca logue dados sensíveis (senhas, tokens, PII).
+- Path traversal: nunca use `path.normalize()` ou `path.join()` sozinhos para validar caminhos de usuário. Use `path.resolve()` + verificação de prefixo:
+  ```
+  const fullPath = path.resolve(baseDir, userInput)
+  if (!fullPath.startsWith(baseDir + path.sep)) throw new Error('path traversal')
+  ```
+- Nunca confie em nomes de arquivo vindos do cliente — sanitize caracteres especiais e limite o comprimento.
 
 ## 🟡 Esperado (deve corrigir salvo justificativa)
 - Use variáveis de ambiente ou secret managers para credenciais.
