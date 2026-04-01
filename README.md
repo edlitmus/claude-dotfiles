@@ -42,7 +42,8 @@ lint-check
 │   ├── lint_hook.sh       ← lint automatico pos-edicao
 │   ├── bash_security.sh   ← bloqueio de comandos perigosos
 │   ├── secret_scan.sh     ← deteccao de credenciais em codigo
-│   └── session_start.sh   ← deteccao automatica de stack
+│   ├── session_start.sh   ← deteccao automatica de stack
+│   └── claude_md_reminder.sh   ← re-injeção de contexto a cada 3 prompts
 ├── agents/
 │   ├── frontend.md    ← UI, React, acessibilidade
 │   ├── backend.md     ← APIs, auth, services
@@ -59,7 +60,16 @@ lint-check
 │   ├── debug/         ← /debug — investigar bugs
 │   ├── handoff/       ← /handoff — salvar contexto entre sessoes
 │   ├── compact/       ← /compact — resumir sessao para liberar contexto
-│   └── perf/          ← /perf — analise de performance
+│   ├── perf/          ← /perf — analise de performance
+│   ├── dispatch/      ← /dispatch — orquestração de agentes
+│   ├── agent-memory/  ← /agent-memory — memória persistente
+│   ├── task-tracking/ ← /task-tracking — todos persistentes
+│   ├── boot/          ← /boot — inicialização de sessão
+│   ├── review-deep/   ← /review-deep — review paralelo multi-agente
+│   ├── tdd/           ← /tdd — test-driven development
+│   ├── explore/       ← /explore — exploração de codebase
+│   ├── contextualize/ ← /contextualize — orientação por diretório
+│   └── brainstorm/    ← /brainstorm — ideação criativa
 └── rules/
     ├── python.md      ← ativado em *.py
     ├── typescript.md  ← ativado em *.ts/*.tsx/*.js/*.jsx
@@ -108,6 +118,15 @@ O agente de **security** opera em modo read-only — analisa e reporta mas nao e
 | `/handoff` | Salva contexto da sessao atual para continuar em outra sessao |
 | `/compact` | Resume sessao atual em bloco estruturado para liberar contexto |
 | `/perf` | Analise de performance: N+1, O(n²), re-renders, cache, I/O |
+| `/review-deep` | Review paralelo com 4 agentes (code, security, test, consequences) |
+| `/dispatch` | Orquestração de sub-agentes com auto-triggers |
+| `/tdd` | Test-driven development: RED → GREEN → REFACTOR |
+| `/explore` | Exploração estruturada de codebase (discovery + deep dive) |
+| `/contextualize` | Gera .context.md por diretório para orientação |
+| `/brainstorm` | Ideação criativa: gera, avalia e prioriza ideias |
+| `/boot` | Inicialização de sessão com memória e contexto |
+| `/agent-memory` | Memória persistente entre sessões (long-term + session) |
+| `/task-tracking` | Todos persistentes em arquivo (sobrevive entre sessões) |
 
 ### Exemplos
 ```
@@ -134,6 +153,7 @@ O agente de **security** opera em modo read-only — analisa e reporta mas nao e
 | **Contexto** | SessionStart | Detecta stack do projeto e injeta capacidades na sessao |
 | **Reforco** | UserPromptSubmit (a cada 5 prompts) | Re-injeta regras criticas para combater esquecimento |
 | **Memoria** | PreCompact | Preserva lembretes apos compactacao de contexto |
+| **Context Reminder** | UserPromptSubmit (a cada 3 prompts) | Re-injeta regras e skills no contexto |
 | **Pendencias** | Stop | Detecta TODOs/FIXMEs e pergunta se quer continuar |
 
 ### Linguagens suportadas pelo lint
@@ -271,7 +291,8 @@ dotfiles/
 │   │   ├── lint_hook.sh       ← hook de lint
 │   │   ├── bash_security.sh   ← seguranca de comandos
 │   │   ├── secret_scan.sh     ← scanner de credenciais
-│   │   └── session_start.sh   ← deteccao de stack
+│   │   ├── session_start.sh   ← deteccao de stack
+│   │   └── claude_md_reminder.sh   ← re-injeção de contexto
 │   ├── agents/
 │   │   ├── frontend.md
 │   │   ├── backend.md
@@ -288,7 +309,16 @@ dotfiles/
 │   │   ├── debug/SKILL.md
 │   │   ├── handoff/SKILL.md
 │   │   ├── compact/SKILL.md
-│   │   └── perf/SKILL.md
+│   │   ├── perf/SKILL.md
+│   │   ├── dispatch/SKILL.md
+│   │   ├── agent-memory/SKILL.md
+│   │   ├── task-tracking/SKILL.md
+│   │   ├── boot/SKILL.md
+│   │   ├── review-deep/SKILL.md
+│   │   ├── tdd/SKILL.md
+│   │   ├── explore/SKILL.md
+│   │   ├── contextualize/SKILL.md
+│   │   └── brainstorm/SKILL.md
 │   └── rules/
 │       ├── python.md
 │       ├── typescript.md
@@ -305,6 +335,40 @@ dotfiles/
 ```
 
 ---
+
+---
+
+## Taxonomia de regras
+
+As regras seguem hierarquia formal (ver `rules/README.md`):
+
+| Tier | Nome | Força |
+|------|------|-------|
+| 1 | **Commandments** (🔴) | Bloqueiam review. Sem exceção |
+| 2 | **Edicts** (🟡) | Precisam justificativa para ignorar |
+| 3 | **Counsel** (🔵) | Sugestões. Nunca bloqueiam |
+
+---
+
+## Memória persistente
+
+O sistema de memória permite continuidade entre sessões:
+
+```
+.memory/
+├── long-term.md           ← insights acumulados entre sessões
+├── session/
+│   └── YYYY-MM-DD-slug.md ← log por tarefa (pause/resume)
+├── todo/
+│   └── YYYY-MM-DD-feat-slug.md ← todos persistentes
+└── plan/
+    └── YYYY-MM-DD-slug.md ← planos de implementação
+```
+
+**Importante**: `.memory/` deve estar no `.gitignore` do projeto.
+
+Skills relacionadas: `/boot` (inicializa), `/agent-memory` (gerencia), `/task-tracking` (todos), `/handoff` (transfere).
+
 
 ## Como adicionar/modificar
 
