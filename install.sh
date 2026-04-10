@@ -127,7 +127,7 @@ install_python_dep() {
     fi
 }
 
-install_python_dep "chromadb" "ChromaDB (vector store)"
+install_python_dep "chromadb" "ONNX embeddings (MiniLM-L6-v2)"
 install_python_dep "turboquant-vectors" "TurboQuant (compressão de vetores)"
 echo ""
 
@@ -223,7 +223,7 @@ echo "  • 1 hook             — lint automático"
 echo "  • 8 agents           — frontend, backend, database, architect, devops, security, fadex-context, data-analyst"
 echo "  • 9 skills           — /review, /ship, /refactor, /test, /security, /debug, /handoff, /loop-recovery, /sync-memory"
 echo "  • 6 rules            — python, typescript, go, sql, security, testing"
-echo "  • memory_bridge.py   — memória semântica com ChromaDB"
+echo "  • memory_bridge.py   — memória semântica numpy + ONNX (MiniLM-L6-v2)"
 echo "  • ruah_bridge.sh     — integração com sessões paralelas"
 echo ""
 echo "⚠️  Configure GITHUB_TOKEN para o MCP GitHub funcionar:"
