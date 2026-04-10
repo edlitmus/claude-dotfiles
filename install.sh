@@ -111,7 +111,63 @@ else
 fi
 echo ""
 
-# --- 8. Validação pós-instalação ---
+# --- 8. Dependências Python ---
+echo "🐍 Instalando dependências Python..."
+
+install_python_dep() {
+    local pkg="$1"
+    local label="$2"
+    if python3 -c "import ${pkg//-/_}" 2>/dev/null; then
+        echo "  [ok] $label já instalado"
+    elif pip3 install "$pkg" --quiet 2>/dev/null; then
+        echo "  [+]  $label instalado"
+        ACTIONS+=("pip: $label")
+    else
+        echo "  [--] $label não disponível (fallback ativo)"
+    fi
+}
+
+install_python_dep "chromadb" "ChromaDB (vector store)"
+install_python_dep "turboquant-vectors" "TurboQuant (compressão de vetores)"
+echo ""
+
+# --- 9. Repositório de memória ---
+echo "🧠 Configurando memória..."
+MEMORY_DIR="${HOME}/memory"
+
+if [ -d "$MEMORY_DIR/.git" ]; then
+    echo "  [ok] Repositório de memória já existe"
+    cd "$MEMORY_DIR" && git pull --quiet --rebase 2>/dev/null && cd - > /dev/null
+else
+    echo "  [+]  Criando repositório de memória..."
+    bash "$DOTFILES_DIR/scripts/setup_memory_repo.sh"
+    ACTIONS+=("Criado: ~/memory")
+fi
+
+# Rebuild incremental dos embeddings
+if [ -f "$DOTFILES_DIR/scripts/memory_bridge.py" ]; then
+    echo "  [+]  Reconstruindo índice de memória..."
+    python3 "$DOTFILES_DIR/scripts/memory_bridge.py" rebuild --incremental --quiet 2>/dev/null || true
+fi
+echo ""
+
+# --- 10. ruah ---
+echo "🔀 Verificando ruah..."
+if command -v ruah &>/dev/null; then
+    echo "  [ok] ruah já instalado: $(ruah --version 2>/dev/null)"
+else
+    if command -v npm &>/dev/null; then
+        echo "  [+]  Instalando ruah..."
+        npm install -g @levi-tc/ruah --quiet 2>/dev/null && \
+            echo "  [ok] ruah instalado" || \
+            echo "  [--] ruah não instalado (opcional)"
+    else
+        echo "  [--] npm não disponível — ruah não instalado (opcional)"
+    fi
+fi
+echo ""
+
+# --- 11. Validação pós-instalação ---
 echo "🔍 Validando instalação..."
 VALIDATION_ERRORS=0
 
@@ -140,10 +196,10 @@ fi
 echo ""
 
 
-# --- 9. Verificar dependências ---
+# --- 12. Verificar dependências ---
 bash "$DOTFILES_DIR/scripts/check_deps.sh"
 
-# --- 10. Resumo ---
+# --- 13. Resumo ---
 echo ""
 echo "╔══════════════════════════════════════════╗"
 echo "║              Resumo                      ║"
@@ -163,10 +219,12 @@ echo "  • CLAUDE.md          — convenções globais"
 echo "  • settings.json      — hooks + permissions"
 echo "  • .mcp.json          — GitHub MCP server"
 echo "  • keybindings.json   — atalhos de teclado"
-echo "  • 4 hooks            — lint automático, bash security, secret scanner, context reminder"
-echo "  • 6 agents           — frontend, backend, database, architect, devops, security"
-echo "  • 18 skills          — /review, /review-deep, /ship, /refactor, /test, /tdd, /security, /debug, /handoff, /compact, /perf, /dispatch, /explore, /contextualize, /brainstorm, /boot, /agent-memory, /task-tracking"
+echo "  • 1 hook             — lint automático"
+echo "  • 8 agents           — frontend, backend, database, architect, devops, security, fadex-context, data-analyst"
+echo "  • 9 skills           — /review, /ship, /refactor, /test, /security, /debug, /handoff, /loop-recovery, /sync-memory"
 echo "  • 6 rules            — python, typescript, go, sql, security, testing"
+echo "  • memory_bridge.py   — memória semântica com ChromaDB"
+echo "  • ruah_bridge.sh     — integração com sessões paralelas"
 echo ""
 echo "⚠️  Configure GITHUB_TOKEN para o MCP GitHub funcionar:"
 echo "    export GITHUB_TOKEN='ghp_seu_token_aqui'"
