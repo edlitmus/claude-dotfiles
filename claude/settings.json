@@ -103,6 +103,10 @@
             "type": "command",
             "command": "~/.claude/hooks/session_start.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'MEMORY_BRIDGE=\"$HOME/dotfiles/scripts/memory_bridge.py\"; if [ -f \"$MEMORY_BRIDGE\" ]; then CONTEXT=$(python3 \"$MEMORY_BRIDGE\" query --text \"$(basename $PWD) contexto projeto\" --top-k 5 --project \"$(basename $PWD)\" --format plain 2>/dev/null); if [ -n \"$CONTEXT\" ]; then echo \"Contexto de memoria injetado: $CONTEXT\"; fi; fi'"
           }
         ]
       }
@@ -114,6 +118,10 @@
             "type": "command",
             "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreCompact\",\"additionalContext\":\"LEMBRETE PÓS-COMPACTAÇÃO: Responda em PT-BR. Hooks de lint e proteção estão ativos. Agentes: frontend, backend, database, architect, devops, security. Skills: /review, /ship, /refactor, /test, /security-audit, /debug.\"}}'",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'MEMORY_BRIDGE=\"$HOME/dotfiles/scripts/memory_bridge.py\"; if [ -f \"$MEMORY_BRIDGE\" ]; then python3 \"$MEMORY_BRIDGE\" store --text \"PreCompact session context for $(basename $PWD)\" --tags \"session,precompact\" --project \"$(basename $PWD)\" --quiet 2>/dev/null; fi'"
           }
         ]
       }
@@ -136,6 +144,10 @@
             "type": "command",
             "command": "INPUT=$(cat); ACTIVE=$(echo \"$INPUT\" | jq -r '.stop_hook_active' 2>/dev/null); [ \"$ACTIVE\" = \"true\" ] && exit 0; MSG=$(echo \"$INPUT\" | jq -r '.last_assistant_message // empty' 2>/dev/null); echo \"$MSG\" | grep -qi 'todo\\|pendente\\|falta\\|TODO\\|FIXME' && echo '{\"continue\":true,\"stopReason\":\"Detectei itens pendentes (TODO/FIXME) na resposta. Verifique se deseja continuar.\"}' || exit 0",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'MEMORY_DIR=\"$HOME/memory\"; if [ -d \"$MEMORY_DIR/.git\" ]; then cd \"$MEMORY_DIR\" && git add -A && git diff --cached --quiet || git commit -m \"session-end: $(date +%Y-%m-%d-%H%M) $(basename $OLDPWD)\" --quiet 2>/dev/null; fi'"
           }
         ]
       }
