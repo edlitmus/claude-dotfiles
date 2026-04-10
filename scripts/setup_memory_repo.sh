@@ -62,8 +62,12 @@ EOF
 git add -A
 git commit -m "chore(init): initialize memory repository"
 
+echo ""
 echo "✓ Repositório de memória criado em $MEMORY_DIR"
-echo "→ Próximo passo: criar repo privado no GitHub e fazer:"
-echo "  cd $MEMORY_DIR"
-echo "  git remote add origin git@github.com:vini-haa/memory"
+echo ""
+echo "→ Próximo passo: crie um repo PRIVADO no GitHub chamado 'memory'"
+echo "  Depois execute:"
+echo "  cd ~/memory"
+echo "  git remote add origin https://github.com/SEU_USUARIO/memory"
 echo "  git push -u origin main"
+echo ""
