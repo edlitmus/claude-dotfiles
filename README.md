@@ -93,6 +93,8 @@ Use agentes quando quiser delegar uma tarefa com contexto especializado:
 | `architect` | Design de sistemas, trade-offs, escolha de tecnologias | Opus |
 | `devops` | Docker, CI/CD, IaC, monitoramento, deploy | Sonnet |
 | `security` | Auditoria, vulnerabilidades, OWASP (read-only) | Opus |
+| `fadex-context` | Sistemas internos FADEX, SAGI, UFPI/IFPI, regulamentações | Sonnet |
+| `data-analyst` | SQL Server/PostgreSQL, queries complexas, ETL, BI | Sonnet |
 
 O agente de **security** opera em modo read-only — analisa e reporta mas nao edita codigo.
 
@@ -127,6 +129,8 @@ O agente de **security** opera em modo read-only — analisa e reporta mas nao e
 | `/boot` | Inicialização de sessão com memória e contexto |
 | `/agent-memory` | Memória persistente entre sessões (long-term + session) |
 | `/task-tracking` | Todos persistentes em arquivo (sobrevive entre sessões) |
+| `/sync-memory` | Reconcilia memória local + remoto + Obsidian |
+| `/loop-recovery` | Detecta e escapa loops de retry improdutivos |
 
 ### Exemplos
 ```
@@ -350,25 +354,75 @@ As regras seguem hierarquia formal (ver `rules/README.md`):
 
 ---
 
-## Memória persistente
+## Sistema de Memória Unificado
 
-O sistema de memória permite continuidade entre sessões:
+O sistema de memória permite continuidade entre sessões e máquinas.
+
+### Arquitetura
 
 ```
-.memory/
-├── long-term.md           ← insights acumulados entre sessões
-├── session/
-│   └── YYYY-MM-DD-slug.md ← log por tarefa (pause/resume)
-├── todo/
-│   └── YYYY-MM-DD-feat-slug.md ← todos persistentes
-└── plan/
-    └── YYYY-MM-DD-slug.md ← planos de implementação
+                    ┌─────────────────────┐
+                    │   Claude Code CLI   │
+                    └─────────┬───────────┘
+                              │
+                    ┌─────────▼───────────┐
+                    │   settings.json     │
+                    │   (hooks lifecycle) │
+                    └──┬──────┬────────┬──┘
+                       │      │        │
+              SessionStart  PreCompact  Stop
+                       │      │        │
+                    ┌──▼──────▼────────▼──┐
+                    │  memory_bridge.py   │
+                    │  (query/store)      │
+                    └──┬──────────────┬───┘
+                       │              │
+              ┌────────▼──┐    ┌──────▼──────┐
+              │ ChromaDB  │    │  ~/memory/  │
+              │ (vetores) │    │ (git repo)  │
+              └───────────┘    └─────────────┘
 ```
 
-**Importante**: `.memory/` deve estar no `.gitignore` do projeto.
+### Fluxo por evento
 
-Skills relacionadas: `/boot` (inicializa), `/agent-memory` (gerencia), `/task-tracking` (todos), `/handoff` (transfere).
+| Evento | Ação automática |
+|--------|----------------|
+| **SessionStart** | Consulta memória → injeta contexto do projeto |
+| **PreCompact** | Salva resumo da sessão antes de compactar |
+| **Stop** | Auto-commit do repositório de memória |
+| **/handoff** | Persiste handoff na memória semântica |
+| **/sync-memory** | Reconcilia todas as camadas |
 
+### Setup em máquina nova
+
+```bash
+git clone https://github.com/vini-haa/dotfiles ~/dotfiles
+cd ~/dotfiles && bash install.sh
+# install.sh configura automaticamente:
+# - ChromaDB + TurboQuant (pip)
+# - ~/memory/ (git repo)
+# - Índice de embeddings (rebuild incremental)
+# - ruah (npm, opcional)
+```
+
+### Comandos de manutenção
+
+```bash
+# Status do sistema de memória
+python3 ~/dotfiles/scripts/memory_bridge.py status
+
+# Buscar memórias
+python3 ~/dotfiles/scripts/memory_bridge.py query --text "autenticação JWT" --top-k 5
+
+# Armazenar manualmente
+python3 ~/dotfiles/scripts/memory_bridge.py store --text "..." --tags "t1,t2" --project "nome"
+
+# Reconciliar tudo
+/sync-memory
+
+# Reconstruir índice
+python3 ~/dotfiles/scripts/memory_bridge.py rebuild --incremental
+```
 
 ## Como adicionar/modificar
 
