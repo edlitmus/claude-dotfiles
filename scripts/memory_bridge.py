@@ -2,6 +2,9 @@
 """
 memory_bridge.py — Ponte de memória semântica para Claude Code.
 
+Armazena memórias como arquivos .md em ~/memory/ e mantém um índice vetorial
+sincronizável via git em ~/memory/.embeddings/ (numpy + JSON).
+
 Comandos:
     store   --text "..." --tags "t1,t2" --project "nome"
     query   --text "..." --top-k 8 --project "nome" [--format plain|markdown|json]
@@ -15,26 +18,26 @@ import hashlib
 import io
 import json
 import logging
+import math
 import os
 import subprocess
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 # Fix Windows encoding for UTF-8 output
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
-from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Configuração
+# Configuracao
 # ---------------------------------------------------------------------------
 
 MEMORY_DIR = Path.home() / "memory"
 EMBEDDINGS_DIR = MEMORY_DIR / ".embeddings"
 INDEX_FILE = EMBEDDINGS_DIR / "index.json"
-CHROMADB_DIR = EMBEDDINGS_DIR / "chromadb"
-LOG_FILE = EMBEDDINGS_DIR / "bridge.log"
+VECTORS_FILE = EMBEDDINGS_DIR / "vectors.npy"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,97 +46,187 @@ logging.basicConfig(
 )
 log = logging.getLogger("memory_bridge")
 
+EMBEDDING_DIM = 384  # all-MiniLM-L6-v2 dimension
+
 # ---------------------------------------------------------------------------
-# Backend abstraction
+# Embedding functions (ONNX > char-trigram fallback)
 # ---------------------------------------------------------------------------
 
-_backend = None
+_embedder = None
 
 
-def _get_backend():
-    """Retorna o backend de vetores disponível (ChromaDB ou numpy fallback)."""
-    global _backend
-    if _backend is not None:
-        return _backend
+def _get_embedder():
+    """Retorna funcao de embedding. Tenta ONNX (via chromadb), fallback char-trigram."""
+    global _embedder
+    if _embedder is not None:
+        return _embedder
 
+    # Tenta usar o embedding function do chromadb (ONNX local, sem storage)
     try:
-        import chromadb
+        from chromadb.utils.embedding_functions import ONNXMiniLM_L6_V2
 
-        CHROMADB_DIR.mkdir(parents=True, exist_ok=True)
-        client = chromadb.PersistentClient(path=str(CHROMADB_DIR))
-        _backend = ("chromadb", client)
-        return _backend
+        onnx_ef = ONNXMiniLM_L6_V2()
+
+        def onnx_embed(text: str) -> list[float]:
+            result = onnx_ef([text])
+            return list(result[0])
+
+        # Teste rapido
+        test = onnx_embed("test")
+        if len(test) == EMBEDDING_DIM:
+            _embedder = ("onnx", onnx_embed)
+            return _embedder
     except Exception as e:
-        log.warning("ChromaDB indisponível (%s) — usando fallback numpy", e)
+        log.debug("ONNX embeddings indisponivel: %s", e)
 
-    _backend = ("numpy", None)
-    return _backend
+    # Fallback: char-trigram hashing
+    def trigram_embed(text: str) -> list[float]:
+        text = text.lower().strip()
+        vec = [0.0] * EMBEDDING_DIM
+        for i in range(len(text) - 2):
+            trigram = text[i : i + 3]
+            h = int(hashlib.md5(trigram.encode()).hexdigest(), 16) % EMBEDDING_DIM
+            vec[h] += 1.0
+        norm = math.sqrt(sum(x * x for x in vec))
+        if norm > 0:
+            vec = [x / norm for x in vec]
+        return vec
+
+    _embedder = ("trigram", trigram_embed)
+    return _embedder
 
 
-def _get_collection(client):
-    """Retorna (ou cria) a collection de memórias no ChromaDB."""
-    return client.get_or_create_collection(
-        name="memories",
-        metadata={"hnsw:space": "cosine"},
-    )
+def get_embedding(text: str) -> list[float]:
+    """Gera embedding para um texto."""
+    _, embed_fn = _get_embedder()
+    return embed_fn(text)
 
 
 # ---------------------------------------------------------------------------
-# Numpy fallback helpers
+# Index management (numpy vectors + JSON metadata)
 # ---------------------------------------------------------------------------
 
-_np_index = None
+_index_cache: dict | None = None
+_vectors_cache = None  # numpy array or None
 
 
-def _load_numpy_index():
-    """Carrega o índice numpy do disco."""
-    global _np_index
-    if _np_index is not None:
-        return _np_index
+def _load_index() -> dict:
+    """Carrega o indice de metadados do disco."""
+    global _index_cache
+    if _index_cache is not None:
+        return _index_cache
 
     if INDEX_FILE.exists():
         with open(INDEX_FILE, "r", encoding="utf-8") as f:
-            _np_index = json.load(f)
+            _index_cache = json.load(f)
     else:
-        _np_index = {"entries": [], "version": 1}
-    return _np_index
+        _index_cache = {"version": 2, "embedding_model": "unknown", "entries": []}
+    return _index_cache
 
 
-def _save_numpy_index(index):
-    """Salva o índice numpy no disco."""
+def _load_vectors():
+    """Carrega os vetores numpy do disco."""
+    global _vectors_cache
+    if _vectors_cache is not None:
+        return _vectors_cache
+
+    try:
+        import numpy as np
+
+        if VECTORS_FILE.exists():
+            _vectors_cache = np.load(str(VECTORS_FILE))
+            return _vectors_cache
+    except Exception as e:
+        log.warning("Erro ao carregar vectors.npy: %s", e)
+
+    return None
+
+
+def _save_index(index: dict, vectors) -> None:
+    """Salva indice e vetores no disco."""
+    global _index_cache, _vectors_cache
     EMBEDDINGS_DIR.mkdir(parents=True, exist_ok=True)
+
     with open(INDEX_FILE, "w", encoding="utf-8") as f:
         json.dump(index, f, ensure_ascii=False, indent=2)
+    _index_cache = index
+
+    if vectors is not None:
+        import numpy as np
+
+        np.save(str(VECTORS_FILE), np.array(vectors, dtype=np.float32))
+        _vectors_cache = np.array(vectors, dtype=np.float32)
 
 
-def _cosine_similarity(a, b):
-    """Similaridade cosseno entre dois vetores (listas Python)."""
-    import math
+def _append_to_index(entry: dict, embedding: list[float]) -> None:
+    """Adiciona uma entrada ao indice e vetor correspondente."""
+    index = _load_index()
+    vectors_np = _load_vectors()
 
-    dot = sum(x * y for x, y in zip(a, b))
-    norm_a = math.sqrt(sum(x * x for x in a))
-    norm_b = math.sqrt(sum(x * x for x in b))
-    if norm_a == 0 or norm_b == 0:
-        return 0.0
-    return dot / (norm_a * norm_b)
+    import numpy as np
+
+    emb_array = np.array([embedding], dtype=np.float32)
+
+    if vectors_np is not None and len(vectors_np) > 0:
+        vectors_np = np.vstack([vectors_np, emb_array])
+    else:
+        vectors_np = emb_array
+
+    index["entries"].append(entry)
+    model_name, _ = _get_embedder()
+    index["embedding_model"] = model_name
+    _save_index(index, vectors_np)
 
 
-def _simple_embedding(text):
-    """Embedding simplificado para fallback numpy — bag of char-trigrams."""
-    text = text.lower().strip()
-    dim = 384
-    vec = [0.0] * dim
-    for i in range(len(text) - 2):
-        trigram = text[i : i + 3]
-        h = int(hashlib.md5(trigram.encode()).hexdigest(), 16) % dim
-        vec[h] += 1.0
-    # Normaliza
-    import math
+# ---------------------------------------------------------------------------
+# Search (numpy cosine similarity)
+# ---------------------------------------------------------------------------
 
-    norm = math.sqrt(sum(x * x for x in vec))
-    if norm > 0:
-        vec = [x / norm for x in vec]
-    return vec
+
+def _cosine_search(
+    query_vec: list[float], top_k: int, project: str | None
+) -> list[tuple[int, float]]:
+    """Busca os top_k vetores mais similares. Retorna [(idx, score), ...]."""
+    import numpy as np
+
+    vectors = _load_vectors()
+    index = _load_index()
+
+    if vectors is None or len(vectors) == 0:
+        return []
+
+    q = np.array(query_vec, dtype=np.float32)
+    q_norm = np.linalg.norm(q)
+    if q_norm == 0:
+        return []
+    q = q / q_norm
+
+    # Filtro de projeto
+    if project:
+        mask = np.array(
+            [e.get("project") == project for e in index["entries"]],
+            dtype=bool,
+        )
+        if not mask.any():
+            return []
+    else:
+        mask = np.ones(len(index["entries"]), dtype=bool)
+
+    # Normaliza vetores e calcula similaridade
+    norms = np.linalg.norm(vectors[mask], axis=1, keepdims=True)
+    norms = np.where(norms == 0, 1, norms)
+    normalized = vectors[mask] / norms
+    scores = normalized @ q
+
+    # Mapeia indices filtrados de volta para indices globais
+    global_indices = np.where(mask)[0]
+
+    # Top-k
+    k = min(top_k, len(scores))
+    top_indices = np.argpartition(scores, -k)[-k:]
+    top_indices = top_indices[np.argsort(scores[top_indices])[::-1]]
+
+    return [(int(global_indices[i]), float(scores[i])) for i in top_indices]
 
 
 # ---------------------------------------------------------------------------
@@ -141,43 +234,29 @@ def _simple_embedding(text):
 # ---------------------------------------------------------------------------
 
 
-def store_memory(text, tags, project, quiet=False):
-    """Armazena uma memória no backend."""
+def store_memory(text: str, tags: str, project: str, quiet: bool = False) -> str:
+    """Armazena uma memoria no indice vetorial e como arquivo .md."""
     mem_id = hashlib.sha256(
         f"{text}{datetime.now(timezone.utc).isoformat()}".encode()
     ).hexdigest()[:12]
 
     timestamp = datetime.now(timezone.utc).isoformat()
-    metadata = {
-        "tags": tags,
+
+    # Gera embedding
+    embedding = get_embedding(text)
+
+    # Adiciona ao indice vetorial
+    entry = {
+        "id": mem_id,
+        "text": text[:500],
         "project": project,
+        "tags": tags,
         "timestamp": timestamp,
         "source": "memory_bridge",
     }
+    _append_to_index(entry, embedding)
 
-    backend_type, client = _get_backend()
-
-    if backend_type == "chromadb":
-        collection = _get_collection(client)
-        collection.add(
-            documents=[text],
-            ids=[mem_id],
-            metadatas=[metadata],
-        )
-    else:
-        index = _load_numpy_index()
-        embedding = _simple_embedding(text)
-        index["entries"].append(
-            {
-                "id": mem_id,
-                "text": text,
-                "embedding": embedding,
-                "metadata": metadata,
-            }
-        )
-        _save_numpy_index(index)
-
-    # Persiste como arquivo markdown no repo de memória
+    # Persiste como arquivo markdown no repo de memoria
     project_dir = MEMORY_DIR / "projects" / project
     project_dir.mkdir(parents=True, exist_ok=True)
 
@@ -194,8 +273,9 @@ def store_memory(text, tags, project, quiet=False):
     )
 
     if not quiet:
-        print(f"✓ Memória armazenada: {mem_id} ({backend_type})")
-        log.info("Stored memory %s for project %s [%s]", mem_id, project, backend_type)
+        model_name, _ = _get_embedder()
+        print(f"✓ Memória armazenada: {mem_id} (embeddings: {model_name})")
+        log.info("Stored memory %s for project %s", mem_id, project)
 
     return mem_id
 
@@ -205,67 +285,34 @@ def store_memory(text, tags, project, quiet=False):
 # ---------------------------------------------------------------------------
 
 
-def query_memory(text, top_k=8, project=None, fmt="plain"):
-    """Busca memórias semanticamente similares."""
-    backend_type, client = _get_backend()
+def query_memory(
+    text: str, top_k: int = 8, project: str | None = None, fmt: str = "plain"
+) -> list[dict]:
+    """Busca memorias semanticamente similares."""
+    index = _load_index()
+    if not index["entries"]:
+        if fmt == "json":
+            print("[]")
+        else:
+            print("Nenhuma memória indexada.")
+        return []
+
+    query_vec = get_embedding(text)
+    matches = _cosine_search(query_vec, top_k, project)
+
     results = []
-
-    if backend_type == "chromadb":
-        collection = _get_collection(client)
-        count = collection.count()
-        if count == 0:
-            if fmt == "json":
-                print("[]")
-            else:
-                print("Nenhuma memória indexada.")
-            return []
-
-        where = {"project": project} if project else None
-        n = min(top_k, count)
-
-        query_result = collection.query(
-            query_texts=[text],
-            n_results=n,
-            where=where,
+    for idx, score in matches:
+        entry = index["entries"][idx]
+        results.append(
+            {
+                "id": entry["id"],
+                "text": entry["text"],
+                "score": round(score, 4),
+                "project": entry.get("project", ""),
+                "tags": entry.get("tags", ""),
+                "timestamp": entry.get("timestamp", ""),
+            }
         )
-
-        for i, doc in enumerate(query_result["documents"][0]):
-            meta = query_result["metadatas"][0][i] if query_result["metadatas"] else {}
-            dist = query_result["distances"][0][i] if query_result["distances"] else 0
-            results.append(
-                {
-                    "id": query_result["ids"][0][i],
-                    "text": doc,
-                    "score": round(1.0 - dist, 4),
-                    "project": meta.get("project", ""),
-                    "tags": meta.get("tags", ""),
-                    "timestamp": meta.get("timestamp", ""),
-                }
-            )
-    else:
-        index = _load_numpy_index()
-        query_emb = _simple_embedding(text)
-
-        scored = []
-        for entry in index["entries"]:
-            if project and entry["metadata"].get("project") != project:
-                continue
-            score = _cosine_similarity(query_emb, entry["embedding"])
-            scored.append((score, entry))
-
-        scored.sort(key=lambda x: x[0], reverse=True)
-
-        for score, entry in scored[:top_k]:
-            results.append(
-                {
-                    "id": entry["id"],
-                    "text": entry["text"],
-                    "score": round(score, 4),
-                    "project": entry["metadata"].get("project", ""),
-                    "tags": entry["metadata"].get("tags", ""),
-                    "timestamp": entry["metadata"].get("timestamp", ""),
-                }
-            )
 
     # Output
     if fmt == "json":
@@ -293,117 +340,91 @@ def query_memory(text, top_k=8, project=None, fmt="plain"):
 # ---------------------------------------------------------------------------
 
 
-def rebuild_index(incremental=True):
-    """Reconstroi o índice de embeddings a partir dos arquivos .md em ~/memory/."""
-    backend_type, client = _get_backend()
+def rebuild_index(incremental: bool = True) -> dict:
+    """Reconstroi o indice de embeddings a partir dos arquivos .md em ~/memory/."""
+    import numpy as np
+
     stats = {"added": 0, "skipped": 0, "errors": 0}
 
-    if backend_type == "chromadb":
-        collection = _get_collection(client)
-        existing_ids = set(collection.get()["ids"]) if incremental else set()
-
-        if not incremental:
-            try:
-                client.delete_collection("memories")
-            except Exception:
-                pass
-            collection = _get_collection(client)
-
-        # Percorre todos os .md em ~/memory/
-        for md_file in MEMORY_DIR.rglob("*.md"):
-            if ".embeddings" in str(md_file) or md_file.name == "README.md":
-                continue
-
-            content = md_file.read_text(encoding="utf-8", errors="replace")
-            file_id = hashlib.sha256(str(md_file).encode()).hexdigest()[:12]
-
-            if incremental and file_id in existing_ids:
-                stats["skipped"] += 1
-                continue
-
-            # Extrai metadados do frontmatter se existir
-            project = md_file.parent.name if md_file.parent != MEMORY_DIR else "global"
-            tags = ""
-            if content.startswith("---"):
-                parts = content.split("---", 2)
-                if len(parts) >= 3:
-                    for line in parts[1].strip().split("\n"):
-                        if line.startswith("tags:"):
-                            tags = line.split(":", 1)[1].strip()
-                        elif line.startswith("project:"):
-                            project = line.split(":", 1)[1].strip()
-                    content = parts[2].strip()
-
-            try:
-                collection.add(
-                    documents=[content[:2000]],
-                    ids=[file_id],
-                    metadatas=[
-                        {
-                            "project": project,
-                            "tags": tags,
-                            "source": str(md_file.relative_to(MEMORY_DIR)),
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
-                        }
-                    ],
-                )
-                stats["added"] += 1
-            except Exception as e:
-                log.warning("Erro ao indexar %s: %s", md_file, e)
-                stats["errors"] += 1
+    if incremental:
+        index = _load_index()
+        vectors_np = _load_vectors()
+        existing_ids = {e["id"] for e in index["entries"]}
     else:
-        # Numpy fallback rebuild
-        index = (
-            {"entries": [], "version": 1} if not incremental else _load_numpy_index()
-        )
-        existing_ids = {e["id"] for e in index["entries"]} if incremental else set()
+        index = {"version": 2, "embedding_model": "unknown", "entries": []}
+        vectors_np = None
+        existing_ids = set()
 
-        for md_file in MEMORY_DIR.rglob("*.md"):
-            if ".embeddings" in str(md_file) or md_file.name == "README.md":
-                continue
+    new_entries: list[dict] = []
+    new_vectors: list[list[float]] = []
 
-            content = md_file.read_text(encoding="utf-8", errors="replace")
-            file_id = hashlib.sha256(str(md_file).encode()).hexdigest()[:12]
+    for md_file in MEMORY_DIR.rglob("*.md"):
+        if ".embeddings" in str(md_file) or md_file.name == "README.md":
+            continue
 
-            if incremental and file_id in existing_ids:
-                stats["skipped"] += 1
-                continue
+        content = md_file.read_text(encoding="utf-8", errors="replace")
+        file_id = hashlib.sha256(str(md_file).encode()).hexdigest()[:12]
 
-            project = md_file.parent.name if md_file.parent != MEMORY_DIR else "global"
-            tags = ""
-            if content.startswith("---"):
-                parts = content.split("---", 2)
-                if len(parts) >= 3:
-                    for line in parts[1].strip().split("\n"):
-                        if line.startswith("tags:"):
-                            tags = line.split(":", 1)[1].strip()
-                        elif line.startswith("project:"):
-                            project = line.split(":", 1)[1].strip()
-                    content = parts[2].strip()
+        if file_id in existing_ids:
+            stats["skipped"] += 1
+            continue
 
-            embedding = _simple_embedding(content[:2000])
-            index["entries"].append(
+        # Extrai metadados do frontmatter
+        project = md_file.parent.name if md_file.parent != MEMORY_DIR else "global"
+        tags = ""
+        text_content = content
+        if content.startswith("---"):
+            parts = content.split("---", 2)
+            if len(parts) >= 3:
+                for line in parts[1].strip().split("\n"):
+                    if line.startswith("tags:"):
+                        tags = line.split(":", 1)[1].strip()
+                    elif line.startswith("project:"):
+                        project = line.split(":", 1)[1].strip()
+                text_content = parts[2].strip()
+
+        try:
+            embedding = get_embedding(text_content[:2000])
+            new_entries.append(
                 {
                     "id": file_id,
-                    "text": content[:2000],
-                    "embedding": embedding,
-                    "metadata": {
-                        "project": project,
-                        "tags": tags,
-                        "source": str(md_file.relative_to(MEMORY_DIR)),
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    },
+                    "text": text_content[:500],
+                    "project": project,
+                    "tags": tags,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "source": str(md_file.relative_to(MEMORY_DIR)),
                 }
             )
+            new_vectors.append(embedding)
             stats["added"] += 1
+        except Exception as e:
+            log.warning("Erro ao indexar %s: %s", md_file, e)
+            stats["errors"] += 1
 
-        _save_numpy_index(index)
+    # Merge com indice existente
+    if new_entries:
+        index["entries"].extend(new_entries)
+        model_name, _ = _get_embedder()
+        index["embedding_model"] = model_name
+
+        new_np = np.array(new_vectors, dtype=np.float32)
+        if vectors_np is not None and len(vectors_np) > 0:
+            vectors_np = np.vstack([vectors_np, new_np])
+        else:
+            vectors_np = new_np
+
+    _save_index(index, vectors_np)
 
     mode = "incremental" if incremental else "full"
-    print(f"✓ Rebuild {mode} concluído ({backend_type})")
+    print(f"✓ Rebuild {mode} concluído (numpy)")
     print(f"  Adicionados: {stats['added']}")
     print(f"  Ignorados:   {stats['skipped']}")
     print(f"  Erros:       {stats['errors']}")
+
+    # Mostra tamanho
+    if VECTORS_FILE.exists():
+        vsize = VECTORS_FILE.stat().st_size
+        print(f"  vectors.npy: {vsize / 1024:.1f} KB")
 
     log.info("Rebuild %s: %s", mode, stats)
     return stats
@@ -414,11 +435,10 @@ def rebuild_index(incremental=True):
 # ---------------------------------------------------------------------------
 
 
-def sync_with_obsidian():
-    """Sincroniza memórias com vault Obsidian (se configurado)."""
+def sync_with_obsidian() -> dict:
+    """Sincroniza memorias com vault Obsidian (se configurado)."""
     obsidian_vault = os.environ.get("OBSIDIAN_VAULT")
     if not obsidian_vault:
-        # Tenta locais comuns
         candidates = [
             Path.home() / "Documents" / "Obsidian Vault",
             Path.home() / "Obsidian",
@@ -442,7 +462,7 @@ def sync_with_obsidian():
 
     stats = {"synced": 0, "vault": str(vault_path)}
 
-    # Copia memórias de projetos para o vault
+    # Copia memorias de projetos para o vault
     projects_dir = MEMORY_DIR / "projects"
     if projects_dir.exists():
         for md_file in projects_dir.rglob("*.md"):
@@ -450,12 +470,11 @@ def sync_with_obsidian():
             dest = memory_vault_dir / relative
             dest.parent.mkdir(parents=True, exist_ok=True)
 
-            # Só copia se mais recente
             if not dest.exists() or md_file.stat().st_mtime > dest.stat().st_mtime:
                 dest.write_text(md_file.read_text(encoding="utf-8"), encoding="utf-8")
                 stats["synced"] += 1
 
-    # Importa notas do vault que tenham tag #claude-memory
+    # Importa notas do vault com tag #claude-memory
     for md_file in vault_path.rglob("*.md"):
         if "claude-memory" in str(md_file):
             continue
@@ -481,11 +500,11 @@ def sync_with_obsidian():
 # ---------------------------------------------------------------------------
 
 
-def print_status():
-    """Exibe status do sistema de memória."""
+def print_status() -> None:
+    """Exibe status do sistema de memoria."""
     print("=== Memory Bridge Status ===\n")
 
-    # Repositório
+    # Repositorio
     if MEMORY_DIR.exists():
         print(f"✓ Repositório: {MEMORY_DIR}")
         md_count = sum(
@@ -496,36 +515,39 @@ def print_status():
         print(f"✗ Repositório não encontrado: {MEMORY_DIR}")
         return
 
-    # Backend
-    backend_type, client = _get_backend()
-    print(f"\n✓ Backend: {backend_type}")
+    # Indice
+    index = _load_index()
+    n_entries = len(index.get("entries", []))
+    model = index.get("embedding_model", "desconhecido")
+    print(f"\n✓ Índice: {n_entries} memórias (modelo: {model})")
 
-    if backend_type == "chromadb":
-        collection = _get_collection(client)
-        count = collection.count()
-        print(f"  Memórias indexadas: {count}")
+    if INDEX_FILE.exists():
+        print(f"  index.json: {INDEX_FILE.stat().st_size / 1024:.1f} KB")
+    if VECTORS_FILE.exists():
+        vsize = VECTORS_FILE.stat().st_size
+        print(f"  vectors.npy: {vsize / 1024:.1f} KB")
 
-        # Tamanho no disco
-        if CHROMADB_DIR.exists():
-            total = sum(
-                f.stat().st_size for f in CHROMADB_DIR.rglob("*") if f.is_file()
-            )
-            print(f"  Tamanho ChromaDB: {total / 1024:.1f} KB")
-    else:
-        index = _load_numpy_index()
-        print(f"  Memórias indexadas: {len(index.get('entries', []))}")
-        if INDEX_FILE.exists():
-            print(f"  Tamanho índice: {INDEX_FILE.stat().st_size / 1024:.1f} KB")
+        # Estimativa de compressao TurboQuant
+        try:
+            from turboquant_vectors import compress as tq_compress  # noqa: F401
+
+            print(f"  TurboQuant 4-bit estimado: ~{vsize / 1024 / 4:.1f} KB")
+        except ImportError:
+            pass
+
+    # Embedder
+    embedder_name, _ = _get_embedder()
+    print(f"\n✓ Embeddings: {embedder_name}")
 
     # TurboQuant
     try:
-        from turboquant_vectors import compress  # noqa: F401
+        from turboquant_vectors import compress as tq_compress  # noqa: F401
 
-        print("\n✓ TurboQuant: disponível (turboquant-vectors)")
+        print("✓ TurboQuant: disponível (turboquant-vectors)")
     except ImportError:
-        print("\n⚠ TurboQuant: não disponível")
+        print("⚠ TurboQuant: não disponível")
 
-    # Git status do memory repo
+    # Git status
     if (MEMORY_DIR / ".git").exists():
         try:
             result = subprocess.run(
@@ -552,7 +574,7 @@ def print_status():
 # ---------------------------------------------------------------------------
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Memory Bridge — memória semântica para Claude Code"
     )
@@ -589,7 +611,7 @@ def main():
 
     args = parser.parse_args()
 
-    # Garante que o diretório de memória existe
+    # Garante que o diretorio de memoria existe
     if args.command != "status":
         MEMORY_DIR.mkdir(parents=True, exist_ok=True)
         EMBEDDINGS_DIR.mkdir(parents=True, exist_ok=True)
