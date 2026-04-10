@@ -79,7 +79,7 @@ cd ~/dotfiles && bash install.sh
 
 O `install.sh` é idempotente — instala tudo automaticamente:
 - Symlinks para `~/.claude/` (settings, hooks, agents, skills, rules)
-- Dependências Python (chromadb para ONNX embeddings, turboquant-vectors)
+- Dependências Python (sentence-transformers para embeddings locais, turboquant-vectors)
 - Repositório de memória em `~/memory/`
 - ruah para coordenação de sessões (opcional)
 - Validação de JSONs e permissões
