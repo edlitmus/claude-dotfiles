@@ -1,261 +1,261 @@
-# Dotfiles — Claude Code com Memória Persistente
+# Dotfiles — Claude Code with Persistent Memory
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Feito para Claude Code](https://img.shields.io/badge/feito%20para-Claude%20Code-blueviolet.svg)](https://claude.ai/code)
+[![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-blueviolet.svg)](https://claude.ai/code)
 
-Dotfiles que dão memória ao Claude Code. Toda sessão nova já sabe quem você é, como você trabalha e o que estava fazendo — sem você explicar nada.
-
----
-
-## O que é isso
-
-O Claude Code começa do zero a cada sessão. Você explica o mesmo contexto, repete as mesmas preferências, perde continuidade entre sessões e máquinas. Sessões paralelas podem conflitar sem coordenação.
-
-Este repositório resolve isso com três camadas:
-
-1. **Memória semântica persistente** — um repositório git privado (`~/memory/`) com embeddings vetoriais que sincronizam entre máquinas
-2. **Hooks automáticos** — injetam contexto ao abrir, salvam contexto ao fechar, protegem arquivos sensíveis, rodam lint
-3. **Agentes + skills + rules** — 8 agentes especializados, 20 skills de workflow e 6 conjuntos de regras por linguagem
+Dotfiles that give Claude Code persistent memory. Every new session already knows who you are, how you work, and what you were doing — without you explaining anything.
 
 ---
 
-## Como funciona
+## What is this
+
+Claude Code starts from zero every session. You explain the same context, repeat the same preferences, lose continuity across sessions and machines. Parallel sessions can conflict without coordination.
+
+This repository solves that with three layers:
+
+1. **Persistent semantic memory** — a private git repo (`~/memory/`) with vector embeddings that sync across machines
+2. **Automatic hooks** — inject context on open, save context on close, protect sensitive files, run linters
+3. **Agents + skills + rules** — 8 specialized agents, 20 workflow skills, and 6 per-language rule sets
+
+---
+
+## How it works
 
 ```
-ABERTURA DE SESSÃO
+SESSION OPEN
 ┌─────────────────────────────────────────────────────┐
 │ SessionStart hook                                   │
 │   └→ memory_bridge.py query                         │
-│       └→ busca em ~/memory/.embeddings/vectors.npy  │
-│           └→ injeta contexto: "você estava fazendo X│
-│              no projeto Y, com stack Z"             │
+│       └→ search ~/memory/.embeddings/vectors.npy    │
+│           └→ inject context: "you were working on X │
+│              in project Y, with stack Z"            │
 └─────────────────────────────────────────────────────┘
 
-DURANTE O TRABALHO
+DURING WORK
 ┌─────────────────────────────────────────────────────┐
-│ /handoff → salva sessão na memória semântica        │
-│ /boot    → carrega memória + estado do projeto      │
-│ PreCompact → persiste contexto antes de compactar   │
-│ Lint automático → roda a cada Write/Edit            │
+│ /handoff → save session to semantic memory          │
+│ /boot    → load memory + project state              │
+│ PreCompact → persist context before compacting      │
+│ Auto-lint → runs on every Write/Edit                │
 └─────────────────────────────────────────────────────┘
 
-FECHAMENTO DE SESSÃO
+SESSION CLOSE
 ┌─────────────────────────────────────────────────────┐
 │ Stop hook                                           │
 │   └→ cd ~/memory && git add -A && git commit        │
-│       └→ memória sincronizada automaticamente       │
+│       └→ memory synced automatically                │
 └─────────────────────────────────────────────────────┘
 
-NOVA MÁQUINA
+NEW MACHINE
 ┌─────────────────────────────────────────────────────┐
 │ git clone dotfiles + git clone memory               │
 │   └→ bash install.sh                                │
-│       └→ rebuild embeddings (~10 segundos)           │
-│           └→ mesmo contexto da máquina anterior     │
+│       └→ rebuild embeddings (~10 seconds)            │
+│           └→ same context as the previous machine   │
 └─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Instalação rápida
+## Quick start
 
-### Pré-requisitos
+### Prerequisites
 
-- [Claude Code](https://claude.ai/code) instalado
+- [Claude Code](https://claude.ai/code) installed
 - Python 3.9+
-- Git configurado
-- Node.js 18+ (opcional, para ruah)
+- Git configured
+- Node.js 18+ (optional, for ruah)
 
-### Setup em nova máquina (~5 minutos)
+### New machine setup (~5 minutes)
 
-**Passo 1 — Clonar e instalar dotfiles**
+**Step 1 — Clone and install dotfiles**
 
 ```bash
 git clone https://github.com/vini-haa/dotfiles ~/dotfiles
 cd ~/dotfiles && bash install.sh
 ```
 
-> **Nota:** Clone obrigatoriamente em `~/dotfiles`. Os hooks de memória usam `$HOME/dotfiles` como caminho fixo.
+> **Note:** You must clone to `~/dotfiles`. The memory hooks use `$HOME/dotfiles` as a fixed path.
 
-O `install.sh` é idempotente — instala tudo automaticamente:
-- Symlinks para `~/.claude/` (settings, hooks, agents, skills, rules)
-- Dependências Python (sentence-transformers para embeddings locais, turboquant-vectors)
-- Repositório de memória em `~/memory/`
-- ruah para coordenação de sessões (opcional)
-- Validação de JSONs e permissões
+`install.sh` is idempotent — it installs everything automatically:
+- Symlinks to `~/.claude/` (settings, hooks, agents, skills, rules)
+- Python dependencies (sentence-transformers for local embeddings, turboquant-vectors)
+- Memory repository at `~/memory/`
+- ruah for session coordination (optional)
+- JSON and permission validation
 
-**Passo 2 — Criar repo privado de memória no GitHub**
+**Step 2 — Create a private memory repo on GitHub**
 
 ```bash
-gh repo create memory --private --description "Memória persistente — Claude Code"
+gh repo create memory --private --description "Persistent memory — Claude Code"
 ```
 
-**Passo 3 — Conectar e fazer push**
+**Step 3 — Connect and push**
 
 ```bash
 cd ~/memory
-git remote add origin git@github.com:SEU_USUARIO/memory
+git remote add origin git@github.com:YOUR_USERNAME/memory
 git push -u origin main
 ```
 
-**Passo 4 — Sua apresentação ao sistema**
+**Step 4 — Introduce yourself to the system**
 
 ```bash
 python3 ~/dotfiles/scripts/memory_bridge.py store \
-  --text "SEU NOME. Stack: SUAS TECNOLOGIAS. Projetos ativos: SEUS PROJETOS. Regras: SUAS REGRAS CRÍTICAS." \
-  --tags "perfil,global" \
+  --text "YOUR NAME. Stack: YOUR TECHNOLOGIES. Active projects: YOUR PROJECTS. Rules: YOUR CRITICAL RULES." \
+  --tags "profile,global" \
   --project "global"
 ```
 
-**Passo 5 — Validar**
+**Step 5 — Validate**
 
 ```bash
 python3 ~/dotfiles/scripts/memory_bridge.py status
-python3 ~/dotfiles/scripts/memory_bridge.py query --text "meu perfil" --top-k 3
+python3 ~/dotfiles/scripts/memory_bridge.py query --text "my profile" --top-k 3
 ```
 
-### Atualizar máquina existente
+### Update an existing machine
 
 ```bash
-cd ~/dotfiles && git pull        # symlinks refletem mudanças automaticamente
-cd ~/memory && git pull          # sincroniza memória da outra máquina
+cd ~/dotfiles && git pull        # symlinks reflect changes automatically
+cd ~/memory && git pull          # sync memory from the other machine
 python3 ~/dotfiles/scripts/memory_bridge.py rebuild --incremental
 ```
 
 ---
 
-## Sistema de memória
+## Memory system
 
-Três camadas trabalham juntas:
+Three layers work together:
 
-| Camada | Onde | O que faz |
-|--------|------|-----------|
-| **Markdown** | `~/memory/projects/`, `~/memory/global/` | Arquivos `.md` com frontmatter — legíveis, versionados, diffable |
-| **Embeddings** | `~/memory/.embeddings/` | `index.json` (metadados) + `vectors.npy` (vetores float32) — busca semântica |
-| **memory_bridge.py** | `~/dotfiles/scripts/` | Interface CLI que conecta tudo |
+| Layer | Where | What it does |
+|-------|-------|-------------|
+| **Markdown** | `~/memory/projects/`, `~/memory/global/` | `.md` files with frontmatter — readable, versioned, diffable |
+| **Embeddings** | `~/memory/.embeddings/` | `index.json` (metadata) + `vectors.npy` (float32 vectors) — semantic search |
+| **memory_bridge.py** | `~/dotfiles/scripts/` | CLI interface that connects everything |
 
-### Comandos
+### Commands
 
 ```bash
-# Armazenar uma memória
+# Store a memory
 python3 ~/dotfiles/scripts/memory_bridge.py store \
-  --text "GED usa JWT auth com refresh tokens" \
+  --text "GED uses JWT auth with refresh tokens" \
   --tags "ged,jwt,auth" \
   --project "ged-fadex"
-# → ✓ Memória armazenada: a1b2c3d4e5f6 (embeddings: onnx)
+# → ✓ Memory stored: a1b2c3d4e5f6 (embeddings: sentence-transformers)
 
-# Buscar memórias similares
+# Search similar memories
 python3 ~/dotfiles/scripts/memory_bridge.py query \
-  --text "autenticação no GED" \
+  --text "GED authentication" \
   --top-k 5
-# → [0.4058] (ged-fadex) GED usa JWT auth com refresh tokens
+# → [0.4058] (ged-fadex) GED uses JWT auth with refresh tokens
 
-# Status do sistema
+# System status
 python3 ~/dotfiles/scripts/memory_bridge.py status
-# → ✓ Índice: 5 memórias (modelo: onnx)
+# → ✓ Index: 5 memories (model: sentence-transformers)
 # → vectors.npy: 7.6 KB
 
-# Reconstruir índice a partir dos .md
+# Rebuild index from .md files
 python3 ~/dotfiles/scripts/memory_bridge.py rebuild --incremental
 
-# Sincronizar com Obsidian (se configurado)
+# Sync with Obsidian (if configured)
 python3 ~/dotfiles/scripts/memory_bridge.py sync
 ```
 
-### Como os embeddings funcionam
+### How embeddings work
 
-O `memory_bridge.py` tenta, nesta ordem:
-1. **ONNX** (all-MiniLM-L6-v2, 384 dims) — via pacote chromadb, roda local, sem API
-2. **Char-trigram** — fallback se ONNX não estiver disponível, funciona sem dependências
+`memory_bridge.py` tries, in order:
+1. **sentence-transformers** (all-MiniLM-L6-v2, 384 dims) — runs locally, no API calls
+2. **Char-trigram** — fallback if sentence-transformers is unavailable, works with zero dependencies
 
-Os vetores são salvos em `vectors.npy` (numpy float32) e os metadados em `index.json` (JSON texto). Ambos sincronizam via git.
-
----
-
-## Sincronização entre máquinas
-
-O ciclo é automático:
-
-| Momento | O que acontece | Quem faz |
-|---------|---------------|----------|
-| Abrir sessão | `git pull` no `~/memory/` + query de contexto | Hook SessionStart |
-| Antes de compactar | `memory_bridge.py store` salva contexto | Hook PreCompact |
-| Fechar sessão | `git add -A && git commit` no `~/memory/` | Hook Stop |
-| Trocar de máquina | `git pull` + `rebuild --incremental` | Manual ou `/sync-memory` |
-
-O push automático não está habilitado (para evitar conflitos silenciosos). Use `/sync-memory` ou `cd ~/memory && git push` manualmente.
+Vectors are saved as `vectors.npy` (numpy float32) and metadata as `index.json` (text JSON). Both sync via git.
 
 ---
 
-## Coordenação de sessões paralelas (ruah)
+## Cross-machine sync
 
-O [ruah](https://www.npmjs.com/package/@levi-tc/ruah) coordena múltiplas sessões Claude Code trabalhando no mesmo repositório, usando git worktrees isolados e file claiming.
+The cycle is automatic:
 
-O `scripts/ruah_bridge.sh` integra ruah com a memória:
+| When | What happens | Who does it |
+|------|-------------|-------------|
+| Open session | `git pull` on `~/memory/` + context query | SessionStart hook |
+| Before compacting | `memory_bridge.py store` saves context | PreCompact hook |
+| Close session | `git add -A && git commit` on `~/memory/` | Stop hook |
+| Switch machines | `git pull` + `rebuild --incremental` | Manual or `/sync-memory` |
+
+Auto-push is not enabled (to avoid silent conflicts). Use `/sync-memory` or `cd ~/memory && git push` manually.
+
+---
+
+## Parallel session coordination (ruah)
+
+[ruah](https://www.npmjs.com/package/@levi-tc/ruah) coordinates multiple Claude Code sessions working on the same repository, using isolated git worktrees and file claiming.
+
+`scripts/ruah_bridge.sh` integrates ruah with memory:
 
 ```bash
-# Ao iniciar uma task: injeta contexto de memória no worktree
-bash ~/dotfiles/scripts/ruah_bridge.sh start nome-da-task
+# Starting a task: injects memory context into the worktree
+bash ~/dotfiles/scripts/ruah_bridge.sh start task-name
 
-# Ao completar: persiste resultado na memória
-bash ~/dotfiles/scripts/ruah_bridge.sh complete nome-da-task
+# Completing: persists result to memory
+bash ~/dotfiles/scripts/ruah_bridge.sh complete task-name
 ```
 
-Instalação opcional — o sistema funciona sem ruah.
+Optional — the system works without ruah.
 
 ---
 
-## Agentes especializados
+## Specialized agents
 
-Use agentes para delegar tarefas com contexto especializado:
+Use agents to delegate tasks with specialized context:
 
-| Agente | Quando usar | Modelo |
-|--------|------------|--------|
-| `frontend` | UI, componentes, CSS, acessibilidade, React/Vue/Angular | Sonnet |
-| `backend` | APIs, auth, services, middleware, integração | Sonnet |
-| `database` | Modelagem, queries, migrations, indexação, performance | Sonnet |
-| `architect` | Design de sistemas, trade-offs, escolha de tecnologias | Opus |
-| `devops` | Docker, CI/CD, IaC, monitoramento, deploy | Sonnet |
-| `security` | Auditoria, vulnerabilidades, OWASP (read-only, não edita) | Opus |
-| `fadex-context` | Sistemas internos FADEX, SAGI, UFPI/IFPI, regulamentações | Sonnet |
-| `data-analyst` | SQL Server/PostgreSQL, queries complexas, ETL, BI | Sonnet |
+| Agent | When to use | Model |
+|-------|------------|-------|
+| `frontend` | UI, components, CSS, accessibility, React/Vue/Angular | Sonnet |
+| `backend` | APIs, auth, services, middleware, integrations | Sonnet |
+| `database` | Modeling, queries, migrations, indexing, performance | Sonnet |
+| `architect` | System design, trade-offs, technology choices | Opus |
+| `devops` | Docker, CI/CD, IaC, monitoring, deploy | Sonnet |
+| `security` | Auditing, vulnerabilities, OWASP (read-only, no edits) | Opus |
+| `fadex-context` | FADEX internal systems, SAGI, UFPI/IFPI, regulations | Sonnet |
+| `data-analyst` | SQL Server/PostgreSQL, complex queries, ETL, BI | Sonnet |
 
 ```
-"Use o agente frontend para criar o componente de login"
-"Peça ao agente database para revisar essa migration"
+"Use the frontend agent to create the login component"
+"Ask the database agent to review this migration"
 ```
 
 ---
 
 ## Skills (slash commands)
 
-| Comando | O que faz |
-|---------|-----------|
-| `/review` | Code review estruturado com veredicto formal (PASS/FAIL/NEEDS DISCUSSION) |
-| `/review-deep` | Review paralelo com 4 agentes (code, security, test, consequences) |
-| `/ship` | Pipeline completo: lint → test → build → commit |
-| `/refactor` | Análise e refatoração com plano antes de executar |
-| `/test` | Gera testes ou roda suite existente |
+| Command | What it does |
+|---------|-------------|
+| `/review` | Structured code review with formal verdict (PASS/FAIL/NEEDS DISCUSSION) |
+| `/review-deep` | Parallel review with 4 agents (code, security, test, consequences) |
+| `/ship` | Full pipeline: lint → test → build → commit |
+| `/refactor` | Analysis and refactoring with plan before execution |
+| `/test` | Generate tests or run existing suite |
 | `/tdd` | Test-driven development: RED → GREEN → REFACTOR |
-| `/security` | Auditoria de segurança (secrets, vulnerabilidades, deps) |
-| `/debug` | Investiga bug: reproduz → isola → diagnostica → corrige |
-| `/perf` | Análise de performance: N+1, O(n²), re-renders, cache, I/O |
-| `/handoff` | Salva contexto da sessão + persiste na memória semântica |
-| `/boot` | Inicialização: consulta memória → carrega estado → detecta stack |
-| `/sync-memory` | Reconcilia git + embeddings + Obsidian |
-| `/loop-recovery` | Detecta e escapa loops de retry improdutivos |
-| `/compact` | Resume sessão para liberar contexto |
-| `/dispatch` | Orquestração de sub-agentes com auto-triggers |
-| `/explore` | Exploração estruturada de codebase (discovery + deep dive) |
-| `/contextualize` | Gera .context.md por diretório para orientação |
-| `/brainstorm` | Ideação criativa: gera, avalia e prioriza ideias |
-| `/agent-memory` | Memória persistente entre sessões (long-term + session) |
-| `/task-tracking` | Todos persistentes em arquivo (sobrevive entre sessões) |
+| `/security` | Security audit (secrets, vulnerabilities, deps) |
+| `/debug` | Investigate bug: reproduce → isolate → diagnose → fix |
+| `/perf` | Performance analysis: N+1, O(n²), re-renders, cache, I/O |
+| `/handoff` | Save session context + persist to semantic memory |
+| `/boot` | Initialize: query memory → load state → detect stack |
+| `/sync-memory` | Reconcile git + embeddings + Obsidian |
+| `/loop-recovery` | Detect and escape unproductive retry loops |
+| `/compact` | Summarize session to free context |
+| `/dispatch` | Sub-agent orchestration with auto-triggers |
+| `/explore` | Structured codebase exploration (discovery + deep dive) |
+| `/contextualize` | Generate .context.md per directory for orientation |
+| `/brainstorm` | Creative ideation: generate, evaluate, and prioritize ideas |
+| `/agent-memory` | Persistent memory across sessions (long-term + session) |
+| `/task-tracking` | Persistent todos in file (survives across sessions) |
 
 ```
 /review src/api/
 /ship "feat: add user authentication"
-/debug "erro 500 no endpoint /api/users"
+/debug "500 error on /api/users endpoint"
 /handoff
 /boot
 /sync-memory
@@ -263,128 +263,128 @@ Use agentes para delegar tarefas com contexto especializado:
 
 ---
 
-## Hooks automáticos
+## Automatic hooks
 
-| Hook | Evento | O que faz |
-|------|--------|-----------|
-| **Proteção de arquivos** | PreToolUse (Edit/Write) | Bloqueia edição de .env, credentials, secrets, .pem, .key |
-| **Bash security** | PreToolUse (Bash) | Bloqueia comandos perigosos (fork bombs, pipes para shell) |
-| **Lint** | PostToolUse (Write/Edit) | Formata código automaticamente |
-| **Secret scanner** | PostToolUse (Write/Edit) | Detecta credenciais vazadas em código |
-| **Memória: injeção** | SessionStart | Consulta `memory_bridge.py` e injeta contexto do projeto |
-| **Memória: captura** | PreCompact | Salva contexto da sessão antes de compactar |
-| **Memória: sync** | Stop | Auto-commit do `~/memory/` |
-| **Reforço de regras** | UserPromptSubmit | Re-injeta regras críticas a cada N prompts |
-| **Pendências** | Stop | Detecta TODO/FIXME e pergunta se quer continuar |
+| Hook | Event | What it does |
+|------|-------|-------------|
+| **File protection** | PreToolUse (Edit/Write) | Blocks editing .env, credentials, secrets, .pem, .key |
+| **Bash security** | PreToolUse (Bash) | Blocks dangerous commands (fork bombs, pipe to shell) |
+| **Lint** | PostToolUse (Write/Edit) | Auto-formats code |
+| **Secret scanner** | PostToolUse (Write/Edit) | Detects leaked credentials in code |
+| **Memory: injection** | SessionStart | Queries `memory_bridge.py` and injects project context |
+| **Memory: capture** | PreCompact | Saves session context before compacting |
+| **Memory: sync** | Stop | Auto-commits `~/memory/` |
+| **Rule reinforcement** | UserPromptSubmit | Re-injects critical rules every N prompts |
+| **Pending items** | Stop | Detects TODO/FIXME and asks if you want to continue |
 
-### Linguagens suportadas pelo lint
+### Supported lint languages
 
-| Extensão | Ferramentas |
-|----------|------------|
+| Extension | Tools |
+|-----------|-------|
 | `.py` | ruff (lint + format) |
 | `.ts` `.tsx` `.js` `.jsx` | eslint + prettier |
 | `.go` | gofmt + golangci-lint |
-| `.sql` | sqlfluff (dialeto auto-detectado) |
+| `.sql` | sqlfluff (auto-detected dialect) |
 
 ---
 
-## Primeiros passos para beta testers
+## Getting started for beta testers
 
-### 1. Siga o setup acima (passos 1-5)
+### 1. Follow the setup above (steps 1-5)
 
-### 2. Armazene seu perfil pessoal
+### 2. Store your personal profile
 
-Personalize e rode:
+Customize and run:
 
 ```bash
 python3 ~/dotfiles/scripts/memory_bridge.py store \
-  --text "SEU NOME, CARGO. Stack: LINGUAGENS E FRAMEWORKS. \
-Projetos ativos: PROJETO A (stack), PROJETO B (stack). \
-Padrões: SEUS PADRÕES DE CÓDIGO. \
-Regras críticas: COISAS QUE NUNCA DEVEM ACONTECER." \
-  --tags "perfil,global" \
+  --text "YOUR NAME, ROLE. Stack: LANGUAGES AND FRAMEWORKS. \
+Active projects: PROJECT A (stack), PROJECT B (stack). \
+Patterns: YOUR CODE PATTERNS. \
+Critical rules: THINGS THAT MUST NEVER HAPPEN." \
+  --tags "profile,global" \
   --project "global"
 ```
 
-### 3. Use por uma sessão real de trabalho
+### 3. Use it for a real work session
 
-Trabalhe normalmente em qualquer projeto. O sistema captura contexto nos bastidores.
+Work normally on any project. The system captures context in the background.
 
-### 4. Use `/handoff` ao fechar a sessão
+### 4. Use `/handoff` when closing the session
 
-Isso persiste o estado completo na memória semântica.
+This persists the full state to semantic memory.
 
-### 5. Abra uma nova sessão e observe
+### 5. Open a new session and observe
 
-O hook SessionStart vai injetar automaticamente o contexto relevante. Você deve ver algo como:
+The SessionStart hook will automatically inject relevant context. You should see something like:
 
 ```
-Contexto de memoria injetado: [0.4058] (meu-projeto) ...
+Memory context injected: [0.4058] (my-project) ...
 ```
 
-### 6. Relate o que funcionou e o que não
+### 6. Report what worked and what didn't
 
-Abra uma Issue em [github.com/vini-haa/dotfiles/issues](https://github.com/vini-haa/dotfiles/issues) com:
-- O que funcionou bem
-- O que não funcionou ou ficou confuso
-- Sugestões de melhoria
+Open an Issue at [github.com/vini-haa/dotfiles/issues](https://github.com/vini-haa/dotfiles/issues) with:
+- What worked well
+- What didn't work or was confusing
+- Suggestions for improvement
 
 ---
 
-## Rules (regras por contexto)
+## Rules (context-aware)
 
-Carregadas sob demanda quando o Claude lê arquivos que batem com o glob:
+Loaded on demand when Claude reads files matching the glob pattern:
 
-| Rule | Ativada em | Conteúdo |
-|------|-----------|----------|
-| `python.md` | `**/*.py` | Type hints, f-strings, pathlib, docstrings Google |
+| Rule | Activated on | Content |
+|------|-------------|---------|
+| `python.md` | `**/*.py` | Type hints, f-strings, pathlib, Google docstrings |
 | `typescript.md` | `**/*.ts/*.tsx/*.js/*.jsx` | Interface vs type, const, async/await, React |
 | `go.md` | `**/*.go` | Error handling, interfaces, table-driven tests |
-| `sql.md` | `**/*.sql` | Keywords uppercase, CTEs, indexação, naming |
-| `security.md` | `**/*` | OWASP, sanitização, secrets, HTTPS |
-| `testing.md` | Arquivos de teste | AAA, nomes descritivos, fixtures, edge cases |
+| `sql.md` | `**/*.sql` | Keywords uppercase, CTEs, indexing, naming |
+| `security.md` | `**/*` | OWASP, sanitization, secrets, HTTPS |
+| `testing.md` | Test files | AAA, descriptive names, fixtures, edge cases |
 
-Hierarquia de severidade:
-- **Commandments** (🔴) — bloqueiam review, sem exceção
-- **Edicts** (🟡) — precisam justificativa para ignorar
-- **Counsel** (🔵) — sugestões, nunca bloqueiam
-
----
-
-## Padrões comportamentais
-
-O `CLAUDE.md` inclui padrões avançados de engenharia de prompt:
-
-- **Regra dos 3 arquivos** — se a tarefa exige ler/editar mais de 3 arquivos, delega para sub-agente automaticamente
-- **Hierarquia de dúvidas** — contexto da conversa → CLAUDE.md → código existente → boas práticas → só então pergunta
-- **Anti-racionalização** — tabela de pensamentos-armadilha que o Claude deve reconhecer e evitar
-- **Resistência a pressão** — se pedirem para pular testes ou revisão, sugere o mínimo viável
-- **Reforço periódico** — hook re-injeta regras críticas a cada N prompts
+Severity hierarchy:
+- **Commandments** (🔴) — block review, no exceptions
+- **Edicts** (🟡) — need justification to override
+- **Counsel** (🔵) — suggestions, never block
 
 ---
 
-## Permissions pré-configuradas
+## Behavioral patterns
 
-**Permitido automaticamente:** leitura de arquivos, busca, grep, lint (ruff, eslint, prettier, gofmt, golangci-lint, sqlfluff), testes (pytest, npm test, go test), git somente leitura.
+`CLAUDE.md` includes advanced prompt engineering patterns:
 
-**Bloqueado sempre:** `rm -rf /`, `rm -rf ~`, `git push --force` para main/master, `git reset --hard`, `chmod -R 777`, pipe de curl/wget para bash/sh, comandos destrutivos de disco.
+- **3-file rule** — if a task requires reading/editing more than 3 files, it automatically delegates to a sub-agent
+- **Question hierarchy** — conversation context → CLAUDE.md → existing code → best practices → only then ask
+- **Anti-rationalization** — table of trap-thoughts that Claude must recognize and avoid
+- **Pressure resistance** — if asked to skip tests or review, suggests the minimum viable alternative
+- **Periodic reinforcement** — hook re-injects critical rules every N prompts
+
+---
+
+## Pre-configured permissions
+
+**Automatically allowed:** file reading, search, grep, linting (ruff, eslint, prettier, gofmt, golangci-lint, sqlfluff), testing (pytest, npm test, go test), read-only git.
+
+**Always blocked:** `rm -rf /`, `rm -rf ~`, `git push --force` to main/master, `git reset --hard`, `chmod -R 777`, piping curl/wget to bash/sh, destructive disk commands.
 
 ---
 
 ## MCP Servers
 
-Pré-configurado com GitHub MCP. Para ativar:
+Pre-configured with GitHub MCP. To activate:
 
 ```bash
-export GITHUB_TOKEN='ghp_seu_token_aqui'
+export GITHUB_TOKEN='ghp_your_token_here'
 ```
 
 ---
 
-## Atalhos de teclado
+## Keyboard shortcuts
 
-| Atalho | Ação |
-|--------|------|
+| Shortcut | Action |
+|----------|--------|
 | `Ctrl+K, Ctrl+R` | /review |
 | `Ctrl+K, Ctrl+T` | /test |
 | `Ctrl+K, Ctrl+S` | /ship |
@@ -392,36 +392,36 @@ export GITHUB_TOKEN='ghp_seu_token_aqui'
 
 ---
 
-## Estrutura do repositório
+## Repository structure
 
 ```
 dotfiles/
 ├── README.md
-├── install.sh                          ← instalador idempotente
+├── install.sh                          ← idempotent installer
 ├── scripts/
-│   ├── memory_bridge.py                ← memória semântica (store/query/rebuild/sync/status)
-│   ├── setup_memory_repo.sh            ← inicializa ~/memory/
-│   ├── ruah_bridge.sh                  ← integração ruah + memória
-│   └── check_deps.sh                   ← verificador de dependências
+│   ├── memory_bridge.py                ← semantic memory (store/query/rebuild/sync/status)
+│   ├── setup_memory_repo.sh            ← initializes ~/memory/
+│   ├── ruah_bridge.sh                  ← ruah + memory integration
+│   └── check_deps.sh                   ← dependency checker
 ├── claude/
-│   ├── CLAUDE.md                       ← convenções globais de código
+│   ├── CLAUDE.md                       ← global code conventions
 │   ├── settings.json                   ← hooks + permissions
 │   ├── .mcp.json                       ← MCP servers
-│   ├── keybindings.json                ← atalhos de teclado
+│   ├── keybindings.json                ← keyboard shortcuts
 │   ├── hooks/
-│   │   ├── lint_hook.sh                ← lint automático pós-edição
-│   │   ├── bash_security.sh            ← bloqueio de comandos perigosos
-│   │   ├── secret_scan.sh              ← detecção de credenciais
-│   │   ├── session_start.sh            ← detecção de stack
-│   │   └── claude_md_reminder.sh       ← reforço periódico de regras
+│   │   ├── lint_hook.sh                ← auto-lint after edit
+│   │   ├── bash_security.sh            ← dangerous command blocker
+│   │   ├── secret_scan.sh              ← credential detection
+│   │   ├── session_start.sh            ← stack detection
+│   │   └── claude_md_reminder.sh       ← periodic rule reinforcement
 │   ├── agents/
-│   │   ├── frontend.md                 ← UI, React, acessibilidade
+│   │   ├── frontend.md                 ← UI, React, accessibility
 │   │   ├── backend.md                  ← APIs, auth, services
-│   │   ├── database.md                 ← SQL, modelagem, performance
-│   │   ├── architect.md                ← design de sistemas
+│   │   ├── database.md                 ← SQL, modeling, performance
+│   │   ├── architect.md                ← system design
 │   │   ├── devops.md                   ← CI/CD, Docker, infra
-│   │   ├── security.md                 ← auditoria OWASP (read-only)
-│   │   ├── fadex-context.md            ← contexto FADEX/SAGI/UFPI
+│   │   ├── security.md                 ← OWASP auditing (read-only)
+│   │   ├── fadex-context.md            ← FADEX/SAGI/UFPI context
 │   │   └── data-analyst.md             ← SQL Server, ETL, BI
 │   ├── skills/
 │   │   ├── review/                     ← /review
@@ -445,28 +445,28 @@ dotfiles/
 │   │   ├── agent-memory/               ← /agent-memory
 │   │   └── task-tracking/              ← /task-tracking
 │   └── rules/
-│       ├── python.md                   ← ativado em *.py
-│       ├── typescript.md               ← ativado em *.ts/*.tsx/*.js/*.jsx
-│       ├── go.md                       ← ativado em *.go
-│       ├── sql.md                      ← ativado em *.sql
-│       ├── security.md                 ← ativado em todos os arquivos
-│       └── testing.md                  ← ativado em arquivos de teste
+│       ├── python.md                   ← activated on *.py
+│       ├── typescript.md               ← activated on *.ts/*.tsx/*.js/*.jsx
+│       ├── go.md                       ← activated on *.go
+│       ├── sql.md                      ← activated on *.sql
+│       ├── security.md                 ← activated on all files
+│       └── testing.md                  ← activated on test files
 ├── docs/
-│   ├── ARCHITECTURE.md                 ← arquitetura completa com diagramas
-│   ├── audit/                          ← auditorias do estado do repo
+│   ├── ARCHITECTURE.md                 ← full architecture with diagrams
+│   ├── audit/                          ← repo state audits
 │   └── decisions/                      ← ADRs (ruah, mempalace, TurboQuant)
 ├── config/
-│   ├── ruff.toml                       ← linter Python
-│   ├── .sqlfluff                       ← linter SQL
-│   └── golangci.yml                    ← linter Go
+│   ├── ruff.toml                       ← Python linter
+│   ├── .sqlfluff                       ← SQL linter
+│   └── golangci.yml                    ← Go linter
 └── shell/
     └── .bashrc_extras                  ← aliases (dotfiles-update, lint-check)
 ```
 
 ---
 
-## Como contribuir
+## Contributing
 
-- **Reportar problemas ou sugestões:** abra uma [Issue](https://github.com/vini-haa/dotfiles/issues)
-- **Novos agentes, skills ou rules:** PRs bem-vindos
-- **Mudanças no core** (memory_bridge, hooks, install.sh): abra Issue primeiro para alinhar abordagem
+- **Report issues or suggestions:** open an [Issue](https://github.com/vini-haa/dotfiles/issues)
+- **New agents, skills, or rules:** PRs welcome
+- **Core changes** (memory_bridge, hooks, install.sh): open an Issue first to align on approach
