@@ -38,6 +38,6 @@ python3 ~/dotfiles/scripts/memory_bridge.py status
 ## Output esperado
 Relatório com:
 - Número de memórias indexadas
-- Tamanho dos vetores (ChromaDB)
+- Tamanho dos vetores (numpy + ONNX)
 - Última sincronização
 - Pendências identificadas
