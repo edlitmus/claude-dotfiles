@@ -33,10 +33,10 @@ persistente entre sessões e máquinas.
 │  └──────┬────────────────┬─────────────────┬───────────────┘ │
 │         │                │                 │                 │
 │  ┌──────▼──────┐  ┌──────▼──────┐  ┌───────▼─────────────┐  │
-│  │  ChromaDB   │  │ ~/memory/   │  │ Obsidian (opcional)  │  │
-│  │  (vetores)  │  │ (git repo)  │  │                      │  │
-│  │  local emb  │  │ projetos/   │  │ vault/claude-memory/ │  │
-│  │  MiniLM-L6  │  │ session/    │  │                      │  │
+│  │ numpy+ONNX  │  │ ~/memory/   │  │ Obsidian (opcional)  │  │
+│  │ (vetores)   │  │ (git repo)  │  │                      │  │
+│  │ index.json  │  │ projetos/   │  │ vault/claude-memory/ │  │
+│  │ vectors.npy │  │ session/    │  │                      │  │
 │  └─────────────┘  │ global/     │  └──────────────────────┘  │
 │                    └─────────────┘                            │
 │                                                              │
@@ -84,11 +84,11 @@ persistente entre sessões e máquinas.
 
 | Decisão | Alternativas | Justificativa |
 |---------|-------------|---------------|
-| ChromaDB como vector store | mempalace, qdrant, numpy puro | Embeddings locais (MiniLM-L6), sem API, funciona no Windows |
+| numpy + ONNX (MiniLM-L6-v2) como vector store | ChromaDB, mempalace, qdrant | Formato git-syncable (index.json + vectors.npy), sem SQLite binário, embeddings locais |
 | turboquant-vectors (opcional) | turboquant-py, numpy | Funciona no Python 3.14, 4-8x compressão para export |
 | ruah para coordenação | git worktree manual | CLI pronta com file claiming e DAG de merge |
 | ~/memory/ como git repo | banco local, cloud | Portável, versionado, push/pull simples |
-| Fallback numpy | — | Garante funcionamento sem dependências extras |
+| Fallback char-trigram | — | Garante funcionamento sem dependências extras |
 
 Detalhes completos em:
 - [docs/decisions/01-ruah-analysis.md](decisions/01-ruah-analysis.md)
@@ -99,10 +99,9 @@ Detalhes completos em:
 
 | Pacote | Obrigatório | Fallback |
 |--------|------------|----------|
-| chromadb | Não | numpy cosine similarity |
+| chromadb (apenas ONNX embeddings) | Não | Fallback char-trigram hashing |
 | turboquant-vectors | Não | Sem compressão (vetores raw) |
 | @levi-tc/ruah | Não | Sem coordenação paralela |
-| sentence-transformers | Não | ChromaDB usa ONNX embutido |
 
 ## Roadmap
 
