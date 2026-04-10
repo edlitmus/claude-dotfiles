@@ -77,3 +77,16 @@ Cole este prompt na nova sessão:
 
 ### 4. Confirmar
 Mostre um resumo do handoff ao usuário antes de salvar.
+
+## Pós-handoff: Persistência na memória
+
+Após criar o arquivo de handoff, persista na memória semântica:
+
+```bash
+python3 ~/dotfiles/scripts/memory_bridge.py store \
+    --text "$(cat ARQUIVO_HANDOFF_CRIADO)" \
+    --tags "handoff,$(basename $PWD),$(date +%Y-%m-%d)" \
+    --project "$(basename $PWD)"
+```
+
+Confirme: "✓ Sessão persistida na memória semântica"
