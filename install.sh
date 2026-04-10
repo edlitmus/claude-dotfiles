@@ -127,7 +127,7 @@ install_python_dep() {
     fi
 }
 
-install_python_dep "chromadb" "ONNX embeddings (MiniLM-L6-v2)"
+install_python_dep "sentence-transformers" "Embeddings locais (MiniLM-L6-v2)"
 install_python_dep "turboquant-vectors" "TurboQuant (compressão de vetores)"
 echo ""
 
