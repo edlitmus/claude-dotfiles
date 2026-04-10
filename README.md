@@ -75,6 +75,8 @@ git clone https://github.com/vini-haa/dotfiles ~/dotfiles
 cd ~/dotfiles && bash install.sh
 ```
 
+> **Nota:** Clone obrigatoriamente em `~/dotfiles`. Os hooks de memória usam `$HOME/dotfiles` como caminho fixo.
+
 O `install.sh` é idempotente — instala tudo automaticamente:
 - Symlinks para `~/.claude/` (settings, hooks, agents, skills, rules)
 - Dependências Python (chromadb para ONNX embeddings, turboquant-vectors)
