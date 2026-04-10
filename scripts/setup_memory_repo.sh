@@ -37,7 +37,7 @@ cat > .gitignore << 'EOF'
 __pycache__/
 .DS_Store
 *.tmp
-.embeddings/
+.embeddings/chromadb/
 EOF
 
 cat > README.md << 'EOF'
