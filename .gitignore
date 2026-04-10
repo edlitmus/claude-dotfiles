@@ -1,0 +1,10 @@
+# Arquivos de teste e temporários
+*.bin.npz
+*.zip
+HANDOFF.md
+.claude/
+__pycache__/
+*.pyc
+.DS_Store
+*.tmp
+node_modules/
