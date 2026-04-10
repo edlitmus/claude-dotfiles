@@ -46,6 +46,41 @@ logging.basicConfig(
 )
 log = logging.getLogger("memory_bridge")
 
+
+class _HFWarningFilter(logging.Filter):
+    """Filtra warnings ruidosos do HuggingFace Hub."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "unauthenticated requests" not in record.getMessage()
+
+
+for _h in logging.root.handlers:
+    _h.addFilter(_HFWarningFilter())
+
+# Silencia logs ruidosos de dependencias
+for _noisy in (
+    "httpx",
+    "httpcore",
+    "urllib3",
+    "sentence_transformers",
+    "huggingface_hub",
+    "transformers",
+    "torch",
+    "filelock",
+):
+    logging.getLogger(_noisy).setLevel(logging.ERROR)
+
+# Suprime warnings do HuggingFace e progress bars do transformers
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+os.environ.setdefault("HF_HUB_DISABLE_IMPLICIT_TOKEN", "1")
+os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+import warnings  # noqa: E402
+
+warnings.filterwarnings("ignore", message=".*unauthenticated requests.*")
+warnings.filterwarnings("ignore", message=".*UNEXPECTED.*")
+
 EMBEDDING_DIM = 384  # all-MiniLM-L6-v2 dimension
 
 # ---------------------------------------------------------------------------
@@ -56,28 +91,38 @@ _embedder = None
 
 
 def _get_embedder():
-    """Retorna funcao de embedding. Tenta ONNX (via chromadb), fallback char-trigram."""
+    """Retorna funcao de embedding. Tenta sentence-transformers, fallback char-trigram."""
     global _embedder
     if _embedder is not None:
         return _embedder
 
-    # Tenta usar o embedding function do chromadb (ONNX local, sem storage)
+    # Tenta usar sentence-transformers (all-MiniLM-L6-v2, roda local, sem API)
     try:
-        from chromadb.utils.embedding_functions import ONNXMiniLM_L6_V2
+        # Suprime warnings do HuggingFace durante o import e load do modelo
+        _prev_level = logging.root.level
+        logging.root.setLevel(logging.ERROR)
+        _stderr = sys.stderr
+        sys.stderr = io.StringIO()
 
-        onnx_ef = ONNXMiniLM_L6_V2()
+        from sentence_transformers import SentenceTransformer
 
-        def onnx_embed(text: str) -> list[float]:
-            result = onnx_ef([text])
-            return list(result[0])
+        model = SentenceTransformer("all-MiniLM-L6-v2")
 
-        # Teste rapido
-        test = onnx_embed("test")
+        def st_embed(text: str) -> list[float]:
+            return model.encode(text).tolist()
+
+        test = st_embed("test")
+
+        sys.stderr = _stderr
+        logging.root.setLevel(_prev_level)
+
         if len(test) == EMBEDDING_DIM:
-            _embedder = ("onnx", onnx_embed)
+            _embedder = ("sentence-transformers", st_embed)
             return _embedder
     except Exception as e:
-        log.debug("ONNX embeddings indisponivel: %s", e)
+        sys.stderr = _stderr
+        logging.root.setLevel(_prev_level)
+        log.debug("sentence-transformers indisponivel: %s", e)
 
     # Fallback: char-trigram hashing
     def trigram_embed(text: str) -> list[float]:
