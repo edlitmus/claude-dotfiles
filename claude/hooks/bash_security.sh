@@ -94,8 +94,14 @@ if _grep_dangerous '(>>?|tee\s+|cp\s+\S+\s+|mv\s+\S+\s+)\s*(~|/root|/home/[^/]+)
     block "writing to ~/.gnupg/"
 fi
 
-if _grep_dangerous '(>>?|tee\s+|cp\s+\S+\s+|mv\s+\S+\s+|install\s+)\s*/usr/' || \
-   _grep_dangerous_E '(>>?|tee |cp |mv |install )\s*/usr/'; then
+# /usr/home/ is exempt: it is the FreeBSD-style home prefix (this machine's
+# $HOME), so writes there are normal user activity, not a system write.
+if _grep_dangerous '(>>?|tee\s+|cp\s+\S+\s+|mv\s+\S+\s+|install\s+)\s*/usr/(?!home/)'; then
+    block "writing to /usr/"
+fi
+# ERE fallback (no lookahead): block /usr/ writes unless they target /usr/home/.
+if _grep_dangerous_E '(>>?|tee |cp |mv |install )\s*/usr/' && \
+   ! _grep_dangerous_E '(>>?|tee |cp |mv |install )\s*/usr/home/'; then
     block "writing to /usr/"
 fi
 
