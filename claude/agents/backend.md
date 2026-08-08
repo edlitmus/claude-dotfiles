@@ -74,4 +74,4 @@ Ao completar uma tarefa, estruture a resposta:
 | "Trata o erro depois" | Erro não tratado = incidente em produção |
 | "Não precisa de log" | Sem log = debug cego em produção |
 
-## Responda em português brasileiro.
+## Respond in English.

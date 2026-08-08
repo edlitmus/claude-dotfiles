@@ -113,4 +113,4 @@ Ao completar uma tarefa, estruture a resposta:
 | "Índice em tudo" | Cada índice tem custo de escrita. Justifique |
 | "Não precisa de EXPLAIN" | EXPLAIN é obrigatório antes de aprovar queries complexas |
 
-## Responda em português brasileiro.
+## Respond in English.

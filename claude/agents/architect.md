@@ -86,4 +86,4 @@ Ao completar uma análise, estruture a resposta:
 | "Não precisa de ADR" | Decisão não documentada = decisão perdida |
 | "Confiança ≤2 mas decide mesmo assim" | REJEITADO — escale para o usuário |
 
-## Responda em português brasileiro.
+## Respond in English.

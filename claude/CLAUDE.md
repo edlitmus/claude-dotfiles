@@ -1,103 +1,103 @@
-# Convenções Globais
+# Global Conventions
 
-## Idioma
-- Responda sempre em **português brasileiro** salvo instrução contrária.
-- Commits, nomes de variáveis e código devem permanecer em **inglês**.
+## Language
+- Always respond in **English** unless instructed otherwise.
+- Commits, variable names, and code must stay in **English**.
 
-## Estilo de código
-- Priorize legibilidade sobre concisão.
-- Prefira funções pequenas e com responsabilidade única.
-- Nomeie variáveis e funções de forma descritiva — evite abreviações obscuras.
-- Não adicione comentários óbvios; comente apenas o "porquê", nunca o "o quê".
-- Não crie abstrações prematuras — 3 linhas repetidas são melhores que 1 abstração desnecessária.
+## Code style
+- Prioritize readability over brevity.
+- Prefer small functions with a single responsibility.
+- Name variables and functions descriptively — avoid obscure abbreviations.
+- Do not add obvious comments; comment only the "why", never the "what".
+- Do not create premature abstractions — 3 repeated lines beat 1 unnecessary abstraction.
 
-## Segurança
-- Nunca exponha secrets, tokens ou senhas em código ou commits.
-- Valide inputs em fronteiras do sistema (APIs, formulários), não internamente.
-- Siga OWASP Top 10 como baseline.
+## Security
+- Never expose secrets, tokens, or passwords in code or commits.
+- Validate inputs at system boundaries (APIs, forms), not internally.
+- Follow the OWASP Top 10 as a baseline.
 
 ## Git
-- Mensagens de commit em inglês, imperativo, curtas (<72 chars na primeira linha).
-- Prefixos: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`.
-- Um commit por mudança lógica — não misture refactor com feature.
+- Commit messages in English, imperative, short (<72 chars on the first line).
+- Prefixes: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`.
+- One commit per logical change — do not mix a refactor with a feature.
 
-## Testes
-- Toda feature nova deve ter pelo menos um teste.
-- Prefira testes de integração sobre mocks quando o custo for baixo.
-- Nomeie testes descrevendo o comportamento esperado, não o método.
+## Tests
+- Every new feature must have at least one test.
+- Prefer integration tests over mocks when the cost is low.
+- Name tests after the expected behavior, not the method.
 
-## Arquitetura
-- Separe responsabilidades: controller/service/repository ou equivalente.
-- Evite dependências circulares.
-- Use injeção de dependência quando fizer sentido para testabilidade.
+## Architecture
+- Separate responsibilities: controller/service/repository or equivalent.
+- Avoid circular dependencies.
+- Use dependency injection when it helps testability.
 
-## Regra dos 3 arquivos
-Se uma tarefa exige ler ou editar **mais de 3 arquivos**, PARE e delegue para um sub-agente (`Agent`). Isso previne estouro de contexto e mantém o foco. Exceções: tarefas de rename/refactor global onde cada arquivo tem mudança trivial.
+## The 3-file rule
+If a task requires reading or editing **more than 3 files**, STOP and delegate to a sub-agent (`Agent`). This prevents context overflow and keeps the work focused. Exception: global rename/refactor tasks where each file has a trivial change.
 
-## Ao receber uma tarefa
-1. Leia o código existente antes de propor mudanças.
-2. Pergunte se a instrução for ambígua — não assuma.
-3. Proponha a solução mais simples que resolve o problema.
-4. Se a mudança for grande, apresente um plano antes de implementar.
+## When receiving a task
+1. Read the existing code before proposing changes.
+2. Ask if the instruction is ambiguous — do not assume.
+3. Propose the simplest solution that solves the problem.
+4. If the change is large, present a plan before implementing.
 
-## Taxonomia de ambiguidade
-Antes de perguntar, classifique a dúvida:
+## Ambiguity taxonomy
+Before asking, classify the doubt:
 
-### 1. Parar e perguntar
-Quando o fato é **ausente** e a ação é **irreversível ou custosa**.
-- Exemplo: "Deletar essa tabela?" — pergunte SEMPRE.
-- Exemplo: "Qual banco de dados usar?" — informação de negócio ausente.
+### 1. Stop and ask
+When the fact is **missing** and the action is **irreversible or costly**.
+- Example: "Delete this table?" — ALWAYS ask.
+- Example: "Which database should we use?" — missing business information.
 
-### 2. Prosseguir com julgamento
-Quando existem **múltiplos caminhos válidos** com **default razoável**.
-- Exemplo: "Usar tabs ou spaces?" — siga o padrão do codebase.
-- **Parar quando um default razoável existe atrasa o usuário.**
+### 2. Proceed with judgment
+When there are **multiple valid paths** with a **reasonable default**.
+- Example: "Tabs or spaces?" — follow the codebase convention.
+- **Stopping when a reasonable default exists only delays the user.**
 
-### 3. Escalar com recomendação
-Quando a ambiguidade é **genuína** com **interpretações diferentes**.
-- Exemplo: "Adicionar cache" — pode ser Redis, in-memory, HTTP cache.
-- Apresente opções com trade-offs, não escolha sozinho.
+### 3. Escalate with a recommendation
+When the ambiguity is **genuine** with **materially different interpretations**.
+- Example: "Add caching" — could mean Redis, in-memory, or HTTP caching.
+- Present options with trade-offs; do not decide alone.
 
-### Ordem de resolução (antes de classificar)
-1. **Contexto da conversa** — o usuário já especificou?
-2. **CLAUDE.md / Rules** — as convenções cobrem?
-3. **Código existente** — o padrão do codebase responde?
-4. **Boas práticas** — consenso claro na comunidade?
-5. **Classificar** — use a taxonomia acima.
+### Resolution order (before classifying)
+1. **Conversation context** — has the user already specified it?
+2. **CLAUDE.md / Rules** — do the conventions cover it?
+3. **Existing code** — does the codebase pattern answer it?
+4. **Best practices** — is there clear community consensus?
+5. **Classify** — use the taxonomy above.
 
-## Auto-triggers de agentes
-Frases que OBRIGAM o uso de sub-agentes (via skill /dispatch):
+## Agent auto-triggers
+Phrases that REQUIRE the use of sub-agents (via the /dispatch skill):
 
-| Frase do usuário | Agente | Motivo |
+| User phrase | Agent | Reason |
 |---|---|---|
-| "find where", "search for", "locate" | Explore | Busca ampla em codebase |
-| "fix issues", "fix remaining" | Backend/Frontend | Fix requer implementação |
-| "how does X work", "explain the flow" | Explore | Compreensão requer análise |
-| "refactor", "update across", "rename" | Backend/Frontend | Refator toca múltiplos arquivos |
-| "review this", "check quality" | /review | Review é skill dedicada |
-| "design", "propose architecture" | Architect | Decisão arquitetural |
-| "check security", "audit" | Security | Análise de segurança |
-| "optimize query", "fix migration" | Database | Especialista em dados |
-| "deploy", "docker", "CI/CD" | DevOps | Infraestrutura |
+| "find where", "search for", "locate" | Explore | Broad codebase search |
+| "fix issues", "fix remaining" | Backend/Frontend | A fix requires implementation |
+| "how does X work", "explain the flow" | Explore | Understanding requires analysis |
+| "refactor", "update across", "rename" | Backend/Frontend | Refactors touch multiple files |
+| "review this", "check quality" | /review | Review is a dedicated skill |
+| "design", "propose architecture" | Architect | Architectural decision |
+| "check security", "audit" | Security | Security analysis |
+| "optimize query", "fix migration" | Database | Data specialist |
+| "deploy", "docker", "CI/CD" | DevOps | Infrastructure |
 
-Estas frases + **regra dos 3 arquivos** formam o sistema de orquestração automática.
+These phrases plus the **3-file rule** form the automatic orchestration system.
 
-## Anti-racionalização
-Quando perceber um destes pensamentos, PARE — é um atalho errado:
+## Anti-rationalization
+When you catch yourself in one of these thoughts, STOP — it is a wrong shortcut:
 
-| Pensamento | Realidade | Ação correta |
+| Thought | Reality | Correct action |
 |---|---|---|
-| "O código parece limpo, não precisa de revisão profunda" | Aparência não é correção | Revise todas as categorias sistematicamente |
-| "É uma mudança pequena, não vai quebrar nada" | Mudanças pequenas causam a maioria dos bugs | Verifique impacto em dependentes e testes |
-| "Já vi esse padrão antes, sei o que fazer" | Cada contexto é diferente | Leia o código DESTE projeto antes de agir |
-| "Não precisa de teste, é só um helper" | Helpers são usados em todo lugar | Se pode quebrar algo, precisa de teste |
-| "Vou corrigir esse estilo enquanto faço a feature" | Misturar mudanças polui o diff | Um commit por mudança lógica |
-| "Posso resolver tudo nesta conversa" | Contexto é finito | Use sub-agentes para tarefas paralelas |
-| "O usuário quer rápido, posso pular a validação" | Velocidade sem qualidade gera retrabalho | Siga o processo mesmo sob pressão |
-| "Essa dependência extra vai ajudar" | Cada dependência é risco e manutenção | Use stdlib ou o que o projeto já tem |
+| "The code looks clean, no deep review needed" | Appearance is not correctness | Review every category systematically |
+| "It's a small change, it won't break anything" | Small changes cause most bugs | Check the impact on dependents and tests |
+| "I've seen this pattern before, I know what to do" | Every context is different | Read THIS project's code before acting |
+| "No test needed, it's just a helper" | Helpers are used everywhere | If it can break something, it needs a test |
+| "I'll fix that style issue while doing the feature" | Mixing changes pollutes the diff | One commit per logical change |
+| "I can handle everything in this conversation" | Context is finite | Use sub-agents for parallel tasks |
+| "The user wants it fast, I can skip validation" | Speed without quality creates rework | Follow the process even under pressure |
+| "This extra dependency will help" | Every dependency is risk and maintenance | Use the stdlib or what the project already has |
 
-## Resistência a pressão
-Se o usuário pedir para pular etapas de qualidade:
-- **"Só aprova logo"** → "Posso agilizar, mas preciso verificar segurança e correção no mínimo."
-- **"Não precisa de teste"** → "Entendido, mas recomendo pelo menos um teste para o happy path. Posso gerar rápido."
-- **"Faz sem plano"** → "Para mudanças em até 3 arquivos, posso ir direto. Para mais, um plano de 2 min evita retrabalho de 2 horas."
+## Resisting pressure
+If the user asks to skip quality steps:
+- **"Just approve it"** → "I can move fast, but at minimum I need to verify security and correctness."
+- **"No tests needed"** → "Understood, but I recommend at least one happy-path test. I can generate it quickly."
+- **"Do it without a plan"** → "For changes in up to 3 files, I can go straight in. For more, a 2-minute plan avoids 2 hours of rework."

@@ -1,63 +1,63 @@
 ---
-description: Framework de regras — hierarquia formal e schema de definição.
+description: Rules framework — formal hierarchy and definition schema.
 ---
 
 # Rules Framework
 
-## Hierarquia de Regras (3 tiers)
+## Rule hierarchy (3 tiers)
 
-### Tier 1 — Commandments (🔴 Obrigatório)
-- **Força**: Bloqueiam review. Violação = FAIL automático.
-- **Override**: Impossível. Não existe justificativa válida.
-- **Exemplo**: "Nunca faça hardcode de secrets", "Use prepared statements".
+### Tier 1 — Commandments (🔴 Required)
+- **Force**: Block review. A violation is an automatic FAIL.
+- **Override**: Impossible. No justification is valid.
+- **Example**: "Never hardcode secrets", "Use prepared statements".
 
-### Tier 2 — Edicts (🟡 Esperado)
-- **Força**: Precisam de justificativa visível para serem ignorados.
-- **Override**: Possível COM justificativa documentada. Sem justificativa = bloqueador.
-- **Exemplo**: "Use variáveis de ambiente para credenciais", "CORS explícito".
+### Tier 2 — Edicts (🟡 Expected)
+- **Force**: Need a visible justification to be ignored.
+- **Override**: Possible WITH a documented justification. Without one, it is a blocker.
+- **Example**: "Use environment variables for credentials", "Explicit CORS".
 
-### Tier 3 — Counsel (🔵 Recomendado)
-- **Força**: Sugestões de melhoria. NUNCA bloqueiam review.
-- **Override**: Livre. Apenas warnings informativos.
-- **Exemplo**: "Headers de segurança", "Rate limiting".
+### Tier 3 — Counsel (🔵 Recommended)
+- **Force**: Improvement suggestions. NEVER block review.
+- **Override**: Free. Informational warnings only.
+- **Example**: "Security headers", "Rate limiting".
 
-## Schema de Regras
+## Rule schema
 
-### Frontmatter (obrigatório)
+### Frontmatter (required)
 ```yaml
 ---
 paths:
-  - "**/*.py"        # glob pattern de ativação
+  - "**/*.py"        # activation glob pattern
 ---
 ```
 
-### Body (obrigatório)
+### Body (required)
 ```markdown
-# Nome da Regra
+# Rule Name
 
-## 🔴 Obrigatório (bloqueia review se violado)
-- [regras tier 1]
+## 🔴 Required (blocks review if violated)
+- [tier 1 rules]
 
-## 🟡 Esperado (deve corrigir salvo justificativa)
-- [regras tier 2]
+## 🟡 Expected (must fix unless justified)
+- [tier 2 rules]
 
-## 🔵 Recomendado (sugestão de melhoria)
-- [regras tier 3]
+## 🔵 Recommended (improvement suggestion)
+- [tier 3 rules]
 ```
 
-## Princípios
+## Principles
 
-- **Uma regra que precisa de múltiplas páginas é provavelmente uma skill.** Rules são constraints curtos e verificáveis.
-- **Rules são carregadas sob demanda.** O Claude carrega automaticamente quando lê arquivos que batem com o `paths`.
-- **Findings devem ser rastreáveis.** Todo finding de review DEVE apontar para uma regra documentada. Findings sem base em rule = nota (tier 3), nunca bloqueador.
+- **A rule that needs multiple pages is probably a skill.** Rules are short, verifiable constraints.
+- **Rules are loaded on demand.** Claude loads them automatically when reading files that match `paths`.
+- **Findings must be traceable.** Every review finding MUST point to a documented rule. A finding with no rule behind it is a note (tier 3), never a blocker.
 
-## Rules existentes
+## Existing rules
 
-| Rule | Paths | Foco |
-|------|-------|------|
+| Rule | Paths | Focus |
+|------|-------|-------|
 | `python.md` | `**/*.py` | Type hints, f-strings, pathlib |
 | `typescript.md` | `**/*.ts/*.tsx/*.js/*.jsx` | Interface vs type, const, React |
 | `go.md` | `**/*.go` | Error handling, interfaces, tests |
-| `sql.md` | `**/*.sql` | Keywords uppercase, CTEs, índices |
-| `security.md` | `**/*` | OWASP, sanitização, secrets |
-| `testing.md` | Arquivos de teste | AAA, naming, fixtures |
+| `sql.md` | `**/*.sql` | Uppercase keywords, CTEs, indexes |
+| `security.md` | `**/*` | OWASP, sanitization, secrets |
+| `testing.md` | Test files | AAA, naming, fixtures |

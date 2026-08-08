@@ -5,21 +5,21 @@ paths:
 
 # SQL
 
-## 🔴 Obrigatório (bloqueia review se violado)
-- Evite `SELECT *` — liste as colunas explicitamente.
-- Migrations: sempre reversíveis (up + down).
-- Use prepared statements / queries parametrizadas — nunca concatenação.
-- Nomeie constraints (`CONSTRAINT pk_users_id PRIMARY KEY`).
+## 🔴 Required (blocks review if violated)
+- Avoid `SELECT *` — list the columns explicitly.
+- Migrations: always reversible (up + down).
+- Use prepared statements / parameterized queries — never concatenation.
+- Name your constraints (`CONSTRAINT pk_users_id PRIMARY KEY`).
 
-## 🟡 Esperado (deve corrigir salvo justificativa)
-- Keywords em UPPERCASE (`SELECT`, `FROM`, `WHERE`).
-- Uma coluna por linha em queries com mais de 3 colunas.
-- Use CTEs (`WITH`) em vez de subqueries aninhadas para legibilidade.
-- Sempre qualifique colunas com alias de tabela em JOINs.
-- Prefira `JOIN` explícito sobre joins implícitos no `WHERE`.
-- Indexação: todo `WHERE`, `JOIN ON` e `ORDER BY` frequente deve ter índice.
+## 🟡 Expected (must fix unless justified)
+- Keywords in UPPERCASE (`SELECT`, `FROM`, `WHERE`).
+- One column per line in queries with more than 3 columns.
+- Use CTEs (`WITH`) instead of nested subqueries for readability.
+- Always qualify columns with a table alias in JOINs.
+- Prefer explicit `JOIN` over implicit joins in the `WHERE` clause.
+- Indexing: every frequent `WHERE`, `JOIN ON`, and `ORDER BY` needs an index.
 
-## 🔵 Recomendado (sugestão de melhoria)
-- Indentação de 4 espaços.
-- Ferramentas: `sqlfluff` com auto-detecção de dialeto (config em `.sqlfluff`).
-- Considere particionamento para tabelas >10M rows com queries por range.
+## 🔵 Recommended (improvement suggestion)
+- 4-space indentation.
+- Tooling: `sqlfluff` with dialect auto-detection (config in `.sqlfluff`).
+- Consider partitioning for tables over 10M rows with range queries.

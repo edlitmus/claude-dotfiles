@@ -8,21 +8,21 @@ paths:
   - "**/__tests__/**"
 ---
 
-# Testes
+# Tests
 
-## 🔴 Obrigatório (bloqueia review se violado)
-- Nomeie testes descrevendo comportamento: `should return 404 when user not found`.
-- Testes devem ser independentes — sem dependência de ordem de execução.
-- Estrutura AAA: Arrange → Act → Assert.
-- Mocks apenas para dependências externas não-controladas (APIs terceiras).
+## 🔴 Required (blocks review if violated)
+- Name tests after the behavior: `should return 404 when user not found`.
+- Tests must be independent — no dependency on execution order.
+- AAA structure: Arrange → Act → Assert.
+- Mocks only for uncontrolled external dependencies (third-party APIs).
 
-## 🟡 Esperado (deve corrigir salvo justificativa)
-- Um assert lógico por teste (pode ter múltiplos asserts se validam a mesma coisa).
-- Prefira testes de integração sobre mocks para I/O real (DB, HTTP).
-- Teste edge cases: null, vazio, limites, concorrência.
-- Fixtures: use factories/builders em vez de dados hardcoded repetidos.
+## 🟡 Expected (must fix unless justified)
+- One logical assert per test (multiple asserts are fine if they validate the same thing).
+- Prefer integration tests over mocks for real I/O (DB, HTTP).
+- Test edge cases: null, empty, boundaries, concurrency.
+- Fixtures: use factories/builders instead of repeated hardcoded data.
 
-## 🔵 Recomendado (sugestão de melhoria)
-- Testes devem ser rápidos — se demorar, mova para suite de integração.
-- Coverage não é métrica de qualidade — cubra comportamentos, não linhas.
-- Considere property-based testing para funções com domínio amplo.
+## 🔵 Recommended (improvement suggestion)
+- Tests should be fast — if one is slow, move it to the integration suite.
+- Coverage is not a quality metric — cover behaviors, not lines.
+- Consider property-based testing for functions with a large input domain.

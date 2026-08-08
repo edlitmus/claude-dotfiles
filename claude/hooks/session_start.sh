@@ -2,10 +2,10 @@
 # session_start.sh — SessionStart hook for Claude Code
 # Detects project stack and reports context automatically.
 
-CONTEXT="Hooks ativos: lint automático, proteção de arquivos sensíveis, bash security, secret scanner."
-CONTEXT="$CONTEXT Agentes: frontend, backend, database, architect, devops, security."
+CONTEXT="Active hooks: automatic lint, sensitive-file protection, bash security, secret scanner."
+CONTEXT="$CONTEXT Agents: frontend, backend, database, architect, devops, security."
 CONTEXT="$CONTEXT Skills: /review, /ship, /refactor, /test, /security, /debug, /handoff, /compact, /perf."
-CONTEXT="$CONTEXT Responda sempre em português brasileiro."
+CONTEXT="$CONTEXT Always respond in English."
 
 # --- Stack detection ---
 STACK=""
@@ -59,7 +59,7 @@ if [ -f "terraform.tf" ] || [ -d ".terraform" ]; then
 fi
 
 if [ -n "$STACK" ]; then
-    CONTEXT="$CONTEXT Stack detectado:$STACK"
+    CONTEXT="$CONTEXT Detected stack:$STACK"
 fi
 
 printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s"}}' "$CONTEXT"

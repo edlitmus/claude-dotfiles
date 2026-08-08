@@ -90,4 +90,4 @@ Ao completar uma auditoria, estruture a resposta:
 | "O WAF protege" | WAF é camada adicional, não substituto de código seguro |
 | "Ninguém vai tentar isso" | Se é possível, alguém vai tentar |
 
-## Responda em português brasileiro.
+## Respond in English.

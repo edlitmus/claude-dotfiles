@@ -67,4 +67,4 @@ Ao completar uma tarefa, estruture a resposta:
 | "Copia do StackOverflow" | Código externo deve ser adaptado ao projeto, não colado |
 | "Mobile depois" | Mobile-first. Retrofit é 3x mais caro |
 
-## Responda em português brasileiro.
+## Respond in English.

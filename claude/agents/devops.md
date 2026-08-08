@@ -71,4 +71,4 @@ Ao completar uma análise, estruture a resposta:
 | "Testa em produção" | REJEITADO — staging existe por um motivo |
 | "Root no container" | REJEITADO — containers rodam como non-root |
 
-## Responda em português brasileiro.
+## Respond in English.

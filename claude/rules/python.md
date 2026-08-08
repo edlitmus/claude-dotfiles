@@ -5,20 +5,20 @@ paths:
 
 # Python
 
-## 🔴 Obrigatório (bloqueia review se violado)
-- Use type hints em todas as assinaturas de função.
-- Exceções específicas — nunca `except Exception` genérico sem re-raise.
-- Use `dataclasses` ou `pydantic` para estruturas de dados, não dicts aninhados.
-- Imports organizados: stdlib → third-party → local (o ruff/isort cuida disso).
+## 🔴 Required (blocks review if violated)
+- Use type hints on every function signature.
+- Specific exceptions — never a bare `except Exception` without re-raising.
+- Use `dataclasses` or `pydantic` for data structures, not nested dicts.
+- Organized imports: stdlib → third-party → local (ruff/isort handles this).
 
-## 🟡 Esperado (deve corrigir salvo justificativa)
-- Prefira f-strings sobre `.format()` ou `%`.
-- Use `pathlib.Path` em vez de `os.path` para manipulação de caminhos.
-- Docstrings no padrão Google (`Args:`, `Returns:`, `Raises:`).
-- Use context managers (`with`) para I/O.
-- Prefira list/dict comprehensions quando legíveis; evite comprehensions aninhadas.
+## 🟡 Expected (must fix unless justified)
+- Prefer f-strings over `.format()` or `%`.
+- Use `pathlib.Path` instead of `os.path` for path manipulation.
+- Google-style docstrings (`Args:`, `Returns:`, `Raises:`).
+- Use context managers (`with`) for I/O.
+- Prefer list/dict comprehensions when readable; avoid nested comprehensions.
 
-## 🔵 Recomendado (sugestão de melhoria)
-- Ferramentas: `ruff` para lint+format (config em `ruff.toml`).
-- Considere `__slots__` em dataclasses de alta frequência.
-- Use `functools.lru_cache` para funções puras chamadas repetidamente.
+## 🔵 Recommended (improvement suggestion)
+- Tooling: `ruff` for lint + format (config in `ruff.toml`).
+- Consider `__slots__` on high-frequency dataclasses.
+- Use `functools.lru_cache` for pure functions called repeatedly.
