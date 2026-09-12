@@ -1,7 +1,7 @@
 ---
 name: debug
-description: Investigação e resolução de bugs — analisa erro, identifica causa raiz e propõe fix.
-argument-hint: "<descrição do erro ou arquivo com o bug>"
+description: Bug investigation and resolution — analyzes the error, identifies the root cause, and proposes a fix.
+argument-hint: "<error description or file containing the bug>"
 user-invocable: true
 allowed-tools: Read, Edit, Write, Grep, Glob, Bash, Agent
 model: sonnet
@@ -10,46 +10,46 @@ effort: high
 
 # Debug
 
-Investigue e resolva o bug: `$ARGUMENTS`
+Investigate and resolve the bug: `$ARGUMENTS`
 
-## Metodologia
+## Methodology
 
-### 1. Reproduzir
-- Entenda o erro reportado (mensagem, stacktrace, comportamento).
-- Se possível, reproduza localmente.
-- Identifique quando funciona vs quando falha.
+### 1. Reproduce
+- Understand the reported error (message, stacktrace, behavior).
+- If possible, reproduce it locally.
+- Identify when it works vs when it fails.
 
-### 2. Isolar
-- Localize o arquivo e linha onde o erro ocorre.
-- Trace o fluxo de dados: de onde vem o input? Por onde passa?
-- Use `git log` e `git blame` para entender mudanças recentes no trecho.
+### 2. Isolate
+- Locate the file and line where the error occurs.
+- Trace the data flow: where does the input come from? What does it pass through?
+- Use `git log` and `git blame` to understand recent changes to that code.
 
-### 3. Diagnosticar
-Identifique a **causa raiz** (não o sintoma):
-- Estado inesperado? Race condition?
-- Input não validado? Tipo errado?
-- Dependência externa falhando?
-- Mudança recente que quebrou contrato?
-- Edge case não tratado?
+### 3. Diagnose
+Identify the **root cause** (not the symptom):
+- Unexpected state? Race condition?
+- Unvalidated input? Wrong type?
+- Failing external dependency?
+- A recent change that broke a contract?
+- An unhandled edge case?
 
-### 4. Corrigir
-- Fix mínimo e focado — não refatore durante debug.
-- Adicione teste que reproduz o bug ANTES do fix.
-- Verifique que o teste falha sem o fix e passa com ele.
+### 4. Fix
+- Minimal, focused fix — do not refactor while debugging.
+- Add a test reproducing the bug BEFORE the fix.
+- Verify the test fails without the fix and passes with it.
 
-### 5. Relatório
+### 5. Report
 ```
 ## 🐛 Debug Report
-**Erro**: [descrição]
-**Causa raiz**: [explicação]
-**Arquivo**: [path:linha]
-**Fix**: [o que foi feito]
-**Teste**: [teste adicionado]
-**Prevenção**: [como evitar no futuro]
+**Error**: [description]
+**Root cause**: [explanation]
+**File**: [path:line]
+**Fix**: [what was done]
+**Test**: [test added]
+**Prevention**: [how to avoid it in the future]
 ```
 
-## Dicas
-- Leia o stacktrace de baixo para cima.
-- `git bisect` para encontrar commit que introduziu o bug.
-- Adicione logs temporários se necessário (remova depois).
-- Desconfie do óbvio — o bug muitas vezes está um nível acima.
+## Tips
+- Read the stacktrace from the bottom up.
+- `git bisect` to find the commit that introduced the bug.
+- Add temporary logs if needed (remove them afterwards).
+- Distrust the obvious — the bug is often one level up.

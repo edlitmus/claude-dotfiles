@@ -1,43 +1,43 @@
 ---
 name: sync-memory
-description: Reconcilia .memory/ local + repositório de memória remoto + Obsidian vault
+description: Reconciles the local .memory/, the remote memory repository, and the Obsidian vault
 ---
 
 # /sync-memory
 
-Reconcilia todas as camadas de memória do sistema.
+Reconciles every memory layer in the system.
 
-## Quando usar
-- Ao trocar de máquina
-- Após uma sessão longa
-- Quando suspeitar que a memória está desatualizada
-- Semanalmente como manutenção
+## When to use
+- When switching machines
+- After a long session
+- When you suspect the memory is out of date
+- Weekly, as maintenance
 
 ## Workflow
 
-### 1. Sincroniza repositório de memória
+### 1. Sync the memory repository
 ```bash
-cd ~/memory && git pull --rebase 2>/dev/null; git push 2>/dev/null || echo "Remote não configurado"
+cd ~/memory && git pull --rebase 2>/dev/null; git push 2>/dev/null || echo "Remote not configured"
 ```
 
-### 2. Rebuild incremental dos embeddings
+### 2. Incremental rebuild of the embeddings
 ```bash
 python3 ~/dotfiles/scripts/memory_bridge.py rebuild --incremental
 ```
 
-### 3. Sincroniza com Obsidian (se vault configurado)
+### 3. Sync with Obsidian (if a vault is configured)
 ```bash
 python3 ~/dotfiles/scripts/memory_bridge.py sync
 ```
 
-### 4. Reporta status
+### 4. Report the status
 ```bash
 python3 ~/dotfiles/scripts/memory_bridge.py status
 ```
 
-## Output esperado
-Relatório com:
-- Número de memórias indexadas
-- Tamanho dos vetores (numpy + ONNX)
-- Última sincronização
-- Pendências identificadas
+## Expected output
+A report with:
+- Number of indexed memories
+- Vector sizes (numpy + ONNX)
+- Last sync
+- Identified pending items

@@ -1,7 +1,7 @@
 ---
 name: handoff
-description: Gera documento de handoff para continuar o trabalho em nova sessão. Use quando o contexto estiver grande ou antes de limpar a sessão.
-argument-hint: "[nome do arquivo de handoff opcional]"
+description: Generates a handoff document so the work can continue in a new session. Use when the context is large or before clearing the session.
+argument-hint: "[optional handoff file name]"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash
 model: sonnet
@@ -10,83 +10,83 @@ effort: high
 
 # Session Handoff
 
-Gere um documento completo de handoff para que uma nova sessão possa continuar exatamente de onde paramos.
+Generate a complete handoff document so a new session can continue exactly where we stopped.
 
-## Processo
+## Process
 
-### 1. Coletar estado atual
+### 1. Collect the current state
 ```bash
-# Branch e status
+# Branch and status
 git branch --show-current
 git status --short
 git log --oneline -10
 
-# Arquivos modificados não commitados
+# Modified, uncommitted files
 git diff --name-only
 git diff --cached --name-only
 ```
 
-### 2. Analisar a conversa
-Revise toda a conversa atual e extraia:
-- O que foi pedido originalmente
-- O que já foi implementado
-- O que ficou pendente
-- Decisões tomadas e seus motivos
-- Problemas encontrados e como foram resolvidos
-- Problemas encontrados e NÃO resolvidos
+### 2. Analyze the conversation
+Review the whole current conversation and extract:
+- What was originally requested
+- What has already been implemented
+- What is still pending
+- Decisions made and their reasons
+- Problems found and how they were resolved
+- Problems found and NOT resolved
 
-### 3. Gerar documento
+### 3. Generate the document
 
-Salve como `HANDOFF.md` no diretório atual (ou no nome fornecido em `$ARGUMENTS`):
+Save it as `HANDOFF.md` in the current directory (or under the name given in `$ARGUMENTS`):
 
 ```markdown
-# Handoff — [Data]
+# Handoff — [Date]
 
-## Contexto
-[O que estamos fazendo e por quê]
+## Context
+[What we are doing and why]
 
-## Estado atual
+## Current state
 - Branch: `feature/x`
-- Último commit: `abc1234 feat: ...`
-- Arquivos modificados não commitados: [lista]
+- Last commit: `abc1234 feat: ...`
+- Modified, uncommitted files: [list]
 
-## O que foi feito
-1. [Tarefa] — [status: completo/parcial]
+## What was done
+1. [Task] — [status: complete/partial]
 2. ...
 
-## O que falta fazer
-1. [ ] [Tarefa pendente] — [contexto necessário]
+## What is left to do
+1. [ ] [Pending task] — [required context]
 2. [ ] ...
 
-## Decisões tomadas
-| Decisão | Motivo | Alternativa descartada |
+## Decisions made
+| Decision | Reason | Discarded alternative |
 |---|---|---|
 | ... | ... | ... |
 
-## Problemas conhecidos
-- [Problema] — [status: resolvido/pendente] — [contexto]
+## Known problems
+- [Problem] — [status: resolved/pending] — [context]
 
-## Para continuar
-Cole este prompt na nova sessão:
-> Leia o arquivo HANDOFF.md neste diretório. Ele contém o contexto
-> da sessão anterior. Continue de onde paramos.
+## To continue
+Paste this prompt into the new session:
+> Read the HANDOFF.md file in this directory. It contains the context
+> from the previous session. Continue where we stopped.
 
-## Arquivos-chave
-[Lista dos arquivos mais relevantes para a tarefa em andamento]
+## Key files
+[List of the files most relevant to the task in progress]
 ```
 
-### 4. Confirmar
-Mostre um resumo do handoff ao usuário antes de salvar.
+### 4. Confirm
+Show a summary of the handoff to the user before saving.
 
-## Pós-handoff: Persistência na memória
+## Post-handoff: Persisting to memory
 
-Após criar o arquivo de handoff, persista na memória semântica:
+After creating the handoff file, persist it to semantic memory:
 
 ```bash
 python3 ~/dotfiles/scripts/memory_bridge.py store \
-    --text "$(cat ARQUIVO_HANDOFF_CRIADO)" \
+    --text "$(cat CREATED_HANDOFF_FILE)" \
     --tags "handoff,$(basename $PWD),$(date +%Y-%m-%d)" \
     --project "$(basename $PWD)"
 ```
 
-Confirme: "✓ Sessão persistida na memória semântica"
+Confirm: "✓ Session persisted to semantic memory"

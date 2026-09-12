@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-memory_bridge.py — Ponte de memória semântica para Claude Code.
+memory_bridge.py — Semantic memory bridge for Claude Code.
 
-Armazena memórias como arquivos .md em ~/memory/ e mantém um índice vetorial
-sincronizável via git em ~/memory/.embeddings/ (numpy + JSON).
+Stores memories as .md files in ~/memory/ and maintains a vector index that is
+git-syncable in ~/memory/.embeddings/ (numpy + JSON).
 
-Comandos:
-    store   --text "..." --tags "t1,t2" --project "nome"
-    query   --text "..." --top-k 8 --project "nome" [--format plain|markdown|json]
+Commands:
+    store   --text "..." --tags "t1,t2" --project "name"
+    query   --text "..." --top-k 8 --project "name" [--format plain|markdown|json]
     rebuild [--incremental]
     sync
     status
@@ -31,7 +31,7 @@ if sys.platform == "win32":
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 # ---------------------------------------------------------------------------
-# Configuracao
+# Configuration
 # ---------------------------------------------------------------------------
 
 MEMORY_DIR = Path.home() / "memory"
@@ -48,7 +48,7 @@ log = logging.getLogger("memory_bridge")
 
 
 class _HFWarningFilter(logging.Filter):
-    """Filtra warnings ruidosos do HuggingFace Hub."""
+    """Filters out noisy warnings from the HuggingFace Hub."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         return "unauthenticated requests" not in record.getMessage()
@@ -57,7 +57,7 @@ class _HFWarningFilter(logging.Filter):
 for _h in logging.root.handlers:
     _h.addFilter(_HFWarningFilter())
 
-# Silencia logs ruidosos de dependencias
+# Silence noisy dependency logs
 for _noisy in (
     "httpx",
     "httpcore",
@@ -70,7 +70,7 @@ for _noisy in (
 ):
     logging.getLogger(_noisy).setLevel(logging.ERROR)
 
-# Suprime warnings do HuggingFace e progress bars do transformers
+# Suppress HuggingFace warnings and transformers progress bars
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
 os.environ.setdefault("HF_HUB_DISABLE_IMPLICIT_TOKEN", "1")
@@ -91,14 +91,14 @@ _embedder = None
 
 
 def _get_embedder():
-    """Retorna funcao de embedding. Tenta sentence-transformers, fallback char-trigram."""
+    """Returns the embedding function. Tries sentence-transformers, falls back to char-trigram."""
     global _embedder
     if _embedder is not None:
         return _embedder
 
-    # Tenta usar sentence-transformers (all-MiniLM-L6-v2, roda local, sem API)
+    # Try sentence-transformers (all-MiniLM-L6-v2, runs locally, no API)
     try:
-        # Suprime warnings do HuggingFace durante o import e load do modelo
+        # Suppress HuggingFace warnings while importing and loading the model
         _prev_level = logging.root.level
         logging.root.setLevel(logging.ERROR)
         _stderr = sys.stderr
@@ -122,7 +122,7 @@ def _get_embedder():
     except Exception as e:
         sys.stderr = _stderr
         logging.root.setLevel(_prev_level)
-        log.debug("sentence-transformers indisponivel: %s", e)
+        log.debug("sentence-transformers unavailable: %s", e)
 
     # Fallback: char-trigram hashing
     def trigram_embed(text: str) -> list[float]:
@@ -142,7 +142,7 @@ def _get_embedder():
 
 
 def get_embedding(text: str) -> list[float]:
-    """Gera embedding para um texto."""
+    """Generates an embedding for a text."""
     _, embed_fn = _get_embedder()
     return embed_fn(text)
 
@@ -156,7 +156,7 @@ _vectors_cache = None  # numpy array or None
 
 
 def _load_index() -> dict:
-    """Carrega o indice de metadados do disco."""
+    """Loads the metadata index from disk."""
     global _index_cache
     if _index_cache is not None:
         return _index_cache
@@ -170,7 +170,7 @@ def _load_index() -> dict:
 
 
 def _load_vectors():
-    """Carrega os vetores numpy do disco."""
+    """Loads the numpy vectors from disk."""
     global _vectors_cache
     if _vectors_cache is not None:
         return _vectors_cache
@@ -182,13 +182,13 @@ def _load_vectors():
             _vectors_cache = np.load(str(VECTORS_FILE))
             return _vectors_cache
     except Exception as e:
-        log.warning("Erro ao carregar vectors.npy: %s", e)
+        log.warning("Failed to load vectors.npy: %s", e)
 
     return None
 
 
 def _save_index(index: dict, vectors) -> None:
-    """Salva indice e vetores no disco."""
+    """Saves the index and vectors to disk."""
     global _index_cache, _vectors_cache
     EMBEDDINGS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -204,7 +204,7 @@ def _save_index(index: dict, vectors) -> None:
 
 
 def _append_to_index(entry: dict, embedding: list[float]) -> None:
-    """Adiciona uma entrada ao indice e vetor correspondente."""
+    """Appends an entry to the index along with its vector."""
     index = _load_index()
     vectors_np = _load_vectors()
 
@@ -231,7 +231,7 @@ def _append_to_index(entry: dict, embedding: list[float]) -> None:
 def _cosine_search(
     query_vec: list[float], top_k: int, project: str | None
 ) -> list[tuple[int, float]]:
-    """Busca os top_k vetores mais similares. Retorna [(idx, score), ...]."""
+    """Finds the top_k most similar vectors. Returns [(idx, score), ...]."""
     import numpy as np
 
     vectors = _load_vectors()
@@ -246,7 +246,7 @@ def _cosine_search(
         return []
     q = q / q_norm
 
-    # Filtro de projeto
+    # Project filter
     if project:
         mask = np.array(
             [e.get("project") == project for e in index["entries"]],
@@ -257,13 +257,13 @@ def _cosine_search(
     else:
         mask = np.ones(len(index["entries"]), dtype=bool)
 
-    # Normaliza vetores e calcula similaridade
+    # Normalize vectors and compute similarity
     norms = np.linalg.norm(vectors[mask], axis=1, keepdims=True)
     norms = np.where(norms == 0, 1, norms)
     normalized = vectors[mask] / norms
     scores = normalized @ q
 
-    # Mapeia indices filtrados de volta para indices globais
+    # Map the filtered indices back to global indices
     global_indices = np.where(mask)[0]
 
     # Top-k
@@ -280,17 +280,17 @@ def _cosine_search(
 
 
 def store_memory(text: str, tags: str, project: str, quiet: bool = False) -> str:
-    """Armazena uma memoria no indice vetorial e como arquivo .md."""
+    """Stores a memory in the vector index and as a .md file."""
     mem_id = hashlib.sha256(
         f"{text}{datetime.now(timezone.utc).isoformat()}".encode()
     ).hexdigest()[:12]
 
     timestamp = datetime.now(timezone.utc).isoformat()
 
-    # Gera embedding
+    # Generate the embedding
     embedding = get_embedding(text)
 
-    # Adiciona ao indice vetorial
+    # Add it to the vector index
     entry = {
         "id": mem_id,
         "text": text[:500],
@@ -301,7 +301,7 @@ def store_memory(text: str, tags: str, project: str, quiet: bool = False) -> str
     }
     _append_to_index(entry, embedding)
 
-    # Persiste como arquivo markdown no repo de memoria
+    # Persist it as a markdown file in the memory repo
     project_dir = MEMORY_DIR / "projects" / project
     project_dir.mkdir(parents=True, exist_ok=True)
 
@@ -319,7 +319,7 @@ def store_memory(text: str, tags: str, project: str, quiet: bool = False) -> str
 
     if not quiet:
         model_name, _ = _get_embedder()
-        print(f"✓ Memória armazenada: {mem_id} (embeddings: {model_name})")
+        print(f"✓ Memory stored: {mem_id} (embeddings: {model_name})")
         log.info("Stored memory %s for project %s", mem_id, project)
 
     return mem_id
@@ -333,13 +333,13 @@ def store_memory(text: str, tags: str, project: str, quiet: bool = False) -> str
 def query_memory(
     text: str, top_k: int = 8, project: str | None = None, fmt: str = "plain"
 ) -> list[dict]:
-    """Busca memorias semanticamente similares."""
+    """Searches for semantically similar memories."""
     index = _load_index()
     if not index["entries"]:
         if fmt == "json":
             print("[]")
         else:
-            print("Nenhuma memória indexada.")
+            print("No memories indexed.")
         return []
 
     query_vec = get_embedding(text)
@@ -364,7 +364,7 @@ def query_memory(
         print(json.dumps(results, ensure_ascii=False, indent=2))
     elif fmt == "markdown":
         if not results:
-            print("Nenhum resultado encontrado.")
+            print("No results found.")
         else:
             for r in results:
                 print(f"### [{r['score']}] {r['project']} — {r['tags']}")
@@ -372,7 +372,7 @@ def query_memory(
                 print()
     else:  # plain
         if not results:
-            print("Nenhum resultado encontrado.")
+            print("No results found.")
         else:
             for r in results:
                 print(f"[{r['score']}] ({r['project']}) {r['text'][:150]}")
@@ -386,7 +386,7 @@ def query_memory(
 
 
 def rebuild_index(incremental: bool = True) -> dict:
-    """Reconstroi o indice de embeddings a partir dos arquivos .md em ~/memory/."""
+    """Rebuilds the embedding index from the .md files in ~/memory/."""
     import numpy as np
 
     stats = {"added": 0, "skipped": 0, "errors": 0}
@@ -414,7 +414,7 @@ def rebuild_index(incremental: bool = True) -> dict:
             stats["skipped"] += 1
             continue
 
-        # Extrai metadados do frontmatter
+        # Extract metadata from the frontmatter
         project = md_file.parent.name if md_file.parent != MEMORY_DIR else "global"
         tags = ""
         text_content = content
@@ -443,10 +443,10 @@ def rebuild_index(incremental: bool = True) -> dict:
             new_vectors.append(embedding)
             stats["added"] += 1
         except Exception as e:
-            log.warning("Erro ao indexar %s: %s", md_file, e)
+            log.warning("Failed to index %s: %s", md_file, e)
             stats["errors"] += 1
 
-    # Merge com indice existente
+    # Merge with the existing index
     if new_entries:
         index["entries"].extend(new_entries)
         model_name, _ = _get_embedder()
@@ -461,12 +461,12 @@ def rebuild_index(incremental: bool = True) -> dict:
     _save_index(index, vectors_np)
 
     mode = "incremental" if incremental else "full"
-    print(f"✓ Rebuild {mode} concluído (numpy)")
-    print(f"  Adicionados: {stats['added']}")
-    print(f"  Ignorados:   {stats['skipped']}")
-    print(f"  Erros:       {stats['errors']}")
+    print(f"✓ Rebuild {mode} complete (numpy)")
+    print(f"  Added:   {stats['added']}")
+    print(f"  Skipped: {stats['skipped']}")
+    print(f"  Errors:  {stats['errors']}")
 
-    # Mostra tamanho
+    # Show the size
     if VECTORS_FILE.exists():
         vsize = VECTORS_FILE.stat().st_size
         print(f"  vectors.npy: {vsize / 1024:.1f} KB")
@@ -476,12 +476,12 @@ def rebuild_index(incremental: bool = True) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# sync (com Obsidian)
+# sync (with Obsidian)
 # ---------------------------------------------------------------------------
 
 
 def sync_with_obsidian() -> dict:
-    """Sincroniza memorias com vault Obsidian (se configurado)."""
+    """Syncs memories with the Obsidian vault (if configured)."""
     obsidian_vault = os.environ.get("OBSIDIAN_VAULT")
     if not obsidian_vault:
         candidates = [
@@ -495,9 +495,9 @@ def sync_with_obsidian() -> dict:
                 break
 
     if not obsidian_vault or not Path(obsidian_vault).exists():
-        print("⚠ Vault Obsidian não encontrado.")
+        print("⚠ Obsidian vault not found.")
         print(
-            "  Configure OBSIDIAN_VAULT ou coloque o vault em ~/Documents/Obsidian Vault/"
+            "  Set OBSIDIAN_VAULT or put the vault in ~/Documents/Obsidian Vault/"
         )
         return {"synced": 0, "vault": None}
 
@@ -507,7 +507,7 @@ def sync_with_obsidian() -> dict:
 
     stats = {"synced": 0, "vault": str(vault_path)}
 
-    # Copia memorias de projetos para o vault
+    # Copy project memories into the vault
     projects_dir = MEMORY_DIR / "projects"
     if projects_dir.exists():
         for md_file in projects_dir.rglob("*.md"):
@@ -519,7 +519,7 @@ def sync_with_obsidian() -> dict:
                 dest.write_text(md_file.read_text(encoding="utf-8"), encoding="utf-8")
                 stats["synced"] += 1
 
-    # Importa notas do vault com tag #claude-memory
+    # Import vault notes tagged #claude-memory
     for md_file in vault_path.rglob("*.md"):
         if "claude-memory" in str(md_file):
             continue
@@ -533,9 +533,9 @@ def sync_with_obsidian() -> dict:
         except Exception:
             continue
 
-    print("✓ Sync com Obsidian concluído")
+    print("✓ Obsidian sync complete")
     print(f"  Vault: {vault_path}")
-    print(f"  Sincronizados: {stats['synced']}")
+    print(f"  Synced: {stats['synced']}")
 
     return stats
 
@@ -546,25 +546,25 @@ def sync_with_obsidian() -> dict:
 
 
 def print_status() -> None:
-    """Exibe status do sistema de memoria."""
+    """Prints the memory system status."""
     print("=== Memory Bridge Status ===\n")
 
-    # Repositorio
+    # Repository
     if MEMORY_DIR.exists():
-        print(f"✓ Repositório: {MEMORY_DIR}")
+        print(f"✓ Repository: {MEMORY_DIR}")
         md_count = sum(
             1 for _ in MEMORY_DIR.rglob("*.md") if ".embeddings" not in str(_)
         )
-        print(f"  Arquivos .md: {md_count}")
+        print(f"  .md files: {md_count}")
     else:
-        print(f"✗ Repositório não encontrado: {MEMORY_DIR}")
+        print(f"✗ Repository not found: {MEMORY_DIR}")
         return
 
-    # Indice
+    # Index
     index = _load_index()
     n_entries = len(index.get("entries", []))
-    model = index.get("embedding_model", "desconhecido")
-    print(f"\n✓ Índice: {n_entries} memórias (modelo: {model})")
+    model = index.get("embedding_model", "unknown")
+    print(f"\n✓ Index: {n_entries} memories (model: {model})")
 
     if INDEX_FILE.exists():
         print(f"  index.json: {INDEX_FILE.stat().st_size / 1024:.1f} KB")
@@ -572,11 +572,11 @@ def print_status() -> None:
         vsize = VECTORS_FILE.stat().st_size
         print(f"  vectors.npy: {vsize / 1024:.1f} KB")
 
-        # Estimativa de compressao TurboQuant
+        # TurboQuant compression estimate
         try:
             from turboquant_vectors import compress as tq_compress  # noqa: F401
 
-            print(f"  TurboQuant 4-bit estimado: ~{vsize / 1024 / 4:.1f} KB")
+            print(f"  TurboQuant 4-bit estimate: ~{vsize / 1024 / 4:.1f} KB")
         except ImportError:
             pass
 
@@ -588,9 +588,9 @@ def print_status() -> None:
     try:
         from turboquant_vectors import compress as tq_compress  # noqa: F401
 
-        print("✓ TurboQuant: disponível (turboquant-vectors)")
+        print("✓ TurboQuant: available (turboquant-vectors)")
     except ImportError:
-        print("⚠ TurboQuant: não disponível")
+        print("⚠ TurboQuant: unavailable")
 
     # Git status
     if (MEMORY_DIR / ".git").exists():
@@ -602,7 +602,7 @@ def print_status() -> None:
                 cwd=MEMORY_DIR,
             )
             if result.returncode == 0:
-                print(f"\n✓ Último commit: {result.stdout.strip()}")
+                print(f"\n✓ Last commit: {result.stdout.strip()}")
         except Exception:
             pass
 
@@ -611,7 +611,7 @@ def print_status() -> None:
     if obsidian_vault and Path(obsidian_vault).exists():
         print(f"\n✓ Obsidian: {obsidian_vault}")
     else:
-        print("\n⚠ Obsidian: não configurado")
+        print("\n⚠ Obsidian: not configured")
 
 
 # ---------------------------------------------------------------------------
@@ -621,42 +621,42 @@ def print_status() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Memory Bridge — memória semântica para Claude Code"
+        description="Memory Bridge — semantic memory for Claude Code"
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # store
-    p_store = subparsers.add_parser("store", help="Armazena uma memória")
-    p_store.add_argument("--text", required=True, help="Texto da memória")
-    p_store.add_argument("--tags", default="", help="Tags separadas por vírgula")
-    p_store.add_argument("--project", default="global", help="Nome do projeto")
-    p_store.add_argument("--quiet", action="store_true", help="Sem output")
+    p_store = subparsers.add_parser("store", help="Store a memory")
+    p_store.add_argument("--text", required=True, help="Memory text")
+    p_store.add_argument("--tags", default="", help="Comma-separated tags")
+    p_store.add_argument("--project", default="global", help="Project name")
+    p_store.add_argument("--quiet", action="store_true", help="No output")
 
     # query
-    p_query = subparsers.add_parser("query", help="Busca memórias similares")
-    p_query.add_argument("--text", required=True, help="Texto de busca")
-    p_query.add_argument("--top-k", type=int, default=8, help="Número de resultados")
-    p_query.add_argument("--project", default=None, help="Filtrar por projeto")
+    p_query = subparsers.add_parser("query", help="Search for similar memories")
+    p_query.add_argument("--text", required=True, help="Search text")
+    p_query.add_argument("--top-k", type=int, default=8, help="Number of results")
+    p_query.add_argument("--project", default=None, help="Filter by project")
     p_query.add_argument(
         "--format", dest="fmt", default="plain", choices=["plain", "markdown", "json"]
     )
 
     # rebuild
-    p_rebuild = subparsers.add_parser("rebuild", help="Reconstroi índice de embeddings")
+    p_rebuild = subparsers.add_parser("rebuild", help="Rebuild the embedding index")
     p_rebuild.add_argument(
-        "--incremental", action="store_true", help="Rebuild incremental"
+        "--incremental", action="store_true", help="Incremental rebuild"
     )
     p_rebuild.add_argument("--quiet", action="store_true")
 
     # sync
-    subparsers.add_parser("sync", help="Sincroniza com Obsidian")
+    subparsers.add_parser("sync", help="Sync with Obsidian")
 
     # status
-    subparsers.add_parser("status", help="Exibe status do sistema")
+    subparsers.add_parser("status", help="Print the system status")
 
     args = parser.parse_args()
 
-    # Garante que o diretorio de memoria existe
+    # Make sure the memory directory exists
     if args.command != "status":
         MEMORY_DIR.mkdir(parents=True, exist_ok=True)
         EMBEDDINGS_DIR.mkdir(parents=True, exist_ok=True)

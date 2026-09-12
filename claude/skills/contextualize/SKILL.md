@@ -1,7 +1,7 @@
 ---
 name: contextualize
-description: Gera arquivos .context.md por diretório para orientação rápida.
-argument-hint: "[diretório raiz opcional]"
+description: Generates per-directory .context.md files for quick orientation.
+argument-hint: "[optional root directory]"
 user-invocable: true
 allowed-tools: Read, Write, Grep, Glob, Bash, Agent
 model: sonnet
@@ -9,73 +9,73 @@ effort: high
 context: fork
 ---
 
-# Contextualize — Orientação por Diretório
+# Contextualize — Per-Directory Orientation
 
-Gere arquivos `.context.md` para o projeto: `$ARGUMENTS`
+Generate `.context.md` files for the project: `$ARGUMENTS`
 
-## O que é um .context.md
+## What a .context.md is
 
-Arquivo de orientação rápida por diretório. Não é documentação completa — é um guia de navegação para humanos e agentes entenderem rapidamente o que cada pasta faz.
+A quick orientation file per directory. It is not complete documentation — it is a navigation guide so humans and agents can quickly understand what each folder does.
 
 ## Schema
 
 ```markdown
-<!-- .context.md — gerado em YYYY-MM-DD -->
+<!-- .context.md — generated on YYYY-MM-DD -->
 ## Purpose
-[1-2 frases: o que este diretório contém e por quê]
+[1-2 sentences: what this directory contains and why]
 
 ## Files
-- `arquivo.ts` — [responsabilidade em 1 linha]
-- `outro.ts` — [responsabilidade em 1 linha]
+- `file.ts` — [responsibility in 1 line]
+- `other.ts` — [responsibility in 1 line]
 
 ## Subdirectories
-- `sub/` — [propósito em 1 linha]
+- `sub/` — [purpose in 1 line]
 
-## Constraints (opcional)
-- MUST: [regra obrigatória deste módulo]
-- MUST NOT: [proibição]
+## Constraints (optional)
+- MUST: [mandatory rule for this module]
+- MUST NOT: [prohibition]
 
-## Guidance (opcional)
-- SHOULD: [recomendação]
+## Guidance (optional)
+- SHOULD: [recommendation]
 ```
 
-## Processo
+## Process
 
-### 1. Determinar escopo
-- Se `$ARGUMENTS` fornecido, usar como raiz
-- Se não, usar diretório atual do projeto
-- Excluir: `node_modules/`, `.git/`, `dist/`, `__pycache__/`, `.memory/`
+### 1. Determine the scope
+- If `$ARGUMENTS` is provided, use it as the root
+- If not, use the project's current directory
+- Exclude: `node_modules/`, `.git/`, `dist/`, `__pycache__/`, `.memory/`
 
-### 2. Percorrer diretórios
-Para cada diretório com arquivos de código:
-1. Listar arquivos e subdiretórios
-2. Ler os primeiros ~50 linhas de cada arquivo-chave
-3. Identificar propósito pela estrutura, imports e exports
-4. Gerar `.context.md` seguindo o schema
+### 2. Walk the directories
+For each directory containing code files:
+1. List files and subdirectories
+2. Read the first ~50 lines of each key file
+3. Identify the purpose from the structure, imports, and exports
+4. Generate a `.context.md` following the schema
 
-### 3. Regras de geração
-- **Nunca inventar propósito** — se não souber, escreva "Purpose unclear — needs investigation"
-- **Brevidade** — cada entrada em 1 linha
-- **Atualizar, não recriar** — se `.context.md` já existe, comparar e atualizar apenas mudanças
-- **Mesmo commit** — `.context.md` deve estar no mesmo commit que mudanças estruturais
+### 3. Generation rules
+- **Never invent a purpose** — if you do not know, write "Purpose unclear — needs investigation"
+- **Brevity** — one line per entry
+- **Update, do not recreate** — if `.context.md` already exists, compare and update only what changed
+- **Same commit** — `.context.md` must be in the same commit as structural changes
 
-### 4. Relatório
+### 4. Report
 ```
-## Contextualize — Relatório
+## Contextualize — Report
 
-### Diretórios cobertos
-- [X] `src/` — [status: criado/atualizado/inalterado]
+### Directories covered
+- [X] `src/` — [status: created/updated/unchanged]
 - [X] `src/utils/` — [status]
 
-### Cobertura
-[X/Y] diretórios com .context.md
+### Coverage
+[X/Y] directories with a .context.md
 
-### Pendências
-- `src/legacy/` — propósito unclear, precisa de investigação
+### Pending
+- `src/legacy/` — purpose unclear, needs investigation
 ```
 
-## Quando usar
-- Projeto novo sem documentação
-- Onboarding de novos membros
-- Antes de refatoração grande (mapear terreno)
-- Após mudanças estruturais significativas
+## When to use
+- A new project without documentation
+- Onboarding new members
+- Before a large refactor (mapping the terrain)
+- After significant structural changes

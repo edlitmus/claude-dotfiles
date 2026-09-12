@@ -1,7 +1,7 @@
 ---
 name: perf
-description: Analisa performance do código e sugere otimizações concretas.
-argument-hint: "[arquivo ou diretório opcional]"
+description: Analyzes code performance and suggests concrete optimizations.
+argument-hint: "[optional file or directory]"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Agent
 model: sonnet
@@ -11,101 +11,101 @@ context: fork
 
 # Performance Analysis
 
-Realize uma análise completa de performance no escopo indicado.
+Run a complete performance analysis over the given scope.
 
-## Escopo
+## Scope
 
-### Se um argumento foi fornecido
-Analise o arquivo ou diretório: `$ARGUMENTS`
+### If an argument was provided
+Analyze the file or directory: `$ARGUMENTS`
 
-### Se nenhum argumento foi fornecido
-Analise o diretório raiz do projeto atual. Use `Glob` e `Bash` para mapear a estrutura e identificar os arquivos mais relevantes (entry points, serviços, rotas, componentes principais).
+### If no argument was provided
+Analyze the current project's root directory. Use `Glob` and `Bash` to map the structure and identify the most relevant files (entry points, services, routes, main components).
 
-Antes de iniciar, identifique o stack do projeto (linguagem, framework, ORM, biblioteca de UI) -- isso determina quais padrões procurar. Para projetos com muitos arquivos relevantes, use `Agent` para paralelizar a análise por categoria.
+Before starting, identify the project's stack (language, framework, ORM, UI library) -- this determines which patterns to look for. For projects with many relevant files, use `Agent` to parallelize the analysis by category.
 
-## Categorias de Análise (TODAS obrigatórias)
+## Analysis Categories (ALL mandatory)
 
-### 1. Queries e Acesso a Dados
+### 1. Queries and Data Access
 
-Procure por:
-- **N+1 queries**: loops que executam queries individuais em vez de buscar em lote (ex: `for item in items: db.query(...)`)
-- **Indexes ausentes**: colunas usadas em `WHERE`, `JOIN` ou `ORDER BY` sem índice correspondente no schema
-- **SELECT \***: queries que retornam todas as colunas quando apenas algumas são usadas
-- **Eager loading desnecessário**: relações carregadas que nunca são acessadas no código
+Look for:
+- **N+1 queries**: loops running individual queries instead of fetching in batch (e.g. `for item in items: db.query(...)`)
+- **Missing indexes**: columns used in `WHERE`, `JOIN`, or `ORDER BY` without a matching index in the schema
+- **SELECT \***: queries returning every column when only a few are used
+- **Unnecessary eager loading**: relations loaded that are never accessed in the code
 
-Use `Grep` para padrões de ORM (`.query(`, `.find(`, `.filter(`, `SELECT`, `JOIN`) e `Read` para schemas de migration.
+Use `Grep` for ORM patterns (`.query(`, `.find(`, `.filter(`, `SELECT`, `JOIN`) and `Read` for migration schemas.
 
-### 2. Loops e Algoritmos
+### 2. Loops and Algorithms
 
-Procure por:
-- **Complexidade O(n²) ou pior**: loops aninhados sobre a mesma coleção onde O(n) é viável
-- **Computação repetida dentro de loop**: chamadas que produzem o mesmo resultado a cada iteração e poderiam ser memoizadas antes do loop
-- **Busca linear em coleções**: `Array.includes`, `list.index()`, `.find()` dentro de loops -- candidatos a `Set` ou `Map` para lookup O(1)
-- **Ordenações desnecessárias**: dados ordenados repetidamente sem mudança entre as ordenações
+Look for:
+- **O(n²) or worse complexity**: nested loops over the same collection where O(n) is feasible
+- **Repeated computation inside a loop**: calls that produce the same result on every iteration and could be memoized before the loop
+- **Linear search in collections**: `Array.includes`, `list.index()`, `.find()` inside loops -- candidates for a `Set` or `Map` for O(1) lookup
+- **Unnecessary sorting**: data sorted repeatedly without changing between sorts
 
-### 3. Memória e Alocações
+### 3. Memory and Allocations
 
-Procure por:
-- **Objetos grandes em hot paths**: alocações pesadas dentro de funções chamadas com alta frequência
-- **Concatenação de strings em loop**: construção via `+=` em loop (use array + join ou StringBuilder)
-- **Caches sem limite ou listas crescentes**: estruturas que crescem indefinidamente sem eviction policy
-- **Memory leaks**: event listeners sem remoção correspondente, `setInterval`/`setTimeout` sem `clear*`, subscriptions não canceladas
+Look for:
+- **Large objects in hot paths**: heavy allocations inside frequently called functions
+- **String concatenation in a loop**: building via `+=` in a loop (use array + join or a StringBuilder)
+- **Unbounded caches or growing lists**: structures that grow indefinitely with no eviction policy
+- **Memory leaks**: event listeners without a matching removal, `setInterval`/`setTimeout` without `clear*`, uncancelled subscriptions
 
-### 4. I/O e Rede
+### 4. I/O and Network
 
-Procure por:
-- **Chamadas async sequenciais paralelizáveis**: `await a(); await b()` quando `a` e `b` são independentes -- use `Promise.all` ou equivalente
-- **Cache ausente para dados estáveis**: dados buscados repetidamente que mudam raramente (configurações, listas de referência, resultados de queries lentas)
-- **Payloads sem paginação**: endpoints que retornam coleções completas sem limit/offset ou cursor
-- **I/O síncrono com alternativa async disponível**: `fs.readFileSync` onde `fs.readFile` seria viável, `time.sleep` onde async sleep existe
+Look for:
+- **Sequential async calls that could be parallel**: `await a(); await b()` when `a` and `b` are independent -- use `Promise.all` or equivalent
+- **Missing cache for stable data**: data fetched repeatedly that rarely changes (configuration, reference lists, results of slow queries)
+- **Payloads without pagination**: endpoints returning full collections without limit/offset or a cursor
+- **Synchronous I/O with an async alternative available**: `fs.readFileSync` where `fs.readFile` would work, `time.sleep` where an async sleep exists
 
-### 5. Frontend (quando aplicável)
+### 5. Frontend (when applicable)
 
-Procure por:
-- **Re-renders desnecessários**: componentes React/Vue/Svelte sem memoização recebendo props que mudam frequentemente; funções inline em JSX que recriam referências a cada render
-- **Bundle sem code splitting**: imports estáticos de módulos pesados que poderiam ser carregados sob demanda via `import()` dinâmico
-- **Imagens sem otimização**: `<img>` sem `loading="lazy"`, sem `width`/`height` explícitos, formatos não otimizados (JPEG/PNG onde WebP seria adequado)
-- **Layout thrashing**: leituras e escritas de propriedades DOM intercaladas em loop (ex: ler `offsetHeight` e escrever `style` repetidamente)
+Look for:
+- **Unnecessary re-renders**: React/Vue/Svelte components without memoization receiving frequently changing props; inline functions in JSX that recreate references on every render
+- **Bundle without code splitting**: static imports of heavy modules that could be loaded on demand via dynamic `import()`
+- **Unoptimized images**: `<img>` without `loading="lazy"`, without explicit `width`/`height`, unoptimized formats (JPEG/PNG where WebP would be appropriate)
+- **Layout thrashing**: interleaved DOM property reads and writes in a loop (e.g. reading `offsetHeight` and writing `style` repeatedly)
 
-## Regras de Análise
+## Analysis Rules
 
-- Reporte apenas problemas com evidência de impacto real: hot paths, loops sobre dados de produção, endpoints de alta frequência.
-- Não sugira otimizações prematuras -- se não há dado de que o trecho é um gargalo, classifique como Sugestão ou omita.
-- Forneça snippets de código concretos no fix, não apenas descrições genéricas.
-- Estime o impacto de forma específica: "elimina re-render do componente Table a cada keystroke", não "melhora performance".
-- Se o escopo for grande demais para análise manual, use `Agent` para distribuir as categorias em paralelo e agregar os resultados.
+- Report only problems with evidence of real impact: hot paths, loops over production data, high-frequency endpoints.
+- Do not suggest premature optimizations -- if there is no data showing the snippet is a bottleneck, classify it as a Suggestion or omit it.
+- Provide concrete code snippets in the fix, not just generic descriptions.
+- Estimate the impact specifically: "eliminates a re-render of the Table component on every keystroke", not "improves performance".
+- If the scope is too large for manual analysis, use `Agent` to distribute the categories in parallel and aggregate the results.
 
-## Formato de Saída
+## Output Format
 
 ```
-## Resumo
-[1-2 frases sobre o estado geral de performance do código analisado.]
+## Summary
+[1-2 sentences on the overall performance state of the analyzed code.]
 
 ## Findings
 
-### Critico (impacto alto)
-- **[/caminho/arquivo.ext:linha]** Descrição clara do problema
-  - Impacto: [ex: "executa N queries para listar N itens -- reduz para 1 query com eager load"]
+### Critical (high impact)
+- **[/path/file.ext:line]** Clear description of the problem
+  - Impact: [e.g. "runs N queries to list N items -- reduces to 1 query with eager loading"]
   - Fix:
-    ```linguagem
-    // antes
-    [trecho problemático]
+    ```language
+    // before
+    [problematic snippet]
 
-    // depois
-    [trecho corrigido]
+    // after
+    [fixed snippet]
     ```
 
-### Importante (impacto médio)
-- **[/caminho/arquivo.ext:linha]** Descrição clara do problema
-  - Impacto: [estimativa qualitativa e específica]
-  - Fix: [sugestão concreta, com snippet se necessário]
+### Important (medium impact)
+- **[/path/file.ext:line]** Clear description of the problem
+  - Impact: [specific qualitative estimate]
+  - Fix: [concrete suggestion, with a snippet if needed]
 
-### Sugestao (impacto baixo)
-- **[/caminho/arquivo.ext:linha]** Descrição
-  - Impacto: [estimativa qualitativa]
-  - Fix: [sugestão]
+### Suggestion (low impact)
+- **[/path/file.ext:line]** Description
+  - Impact: [qualitative estimate]
+  - Fix: [suggestion]
 
-## Metricas Recomendadas
-- [O que medir para validar que as otimizações surtiram efeito]
-- [ex: "tempo médio de resposta do endpoint /api/items", "heap size após 1000 requisições"]
+## Recommended Metrics
+- [What to measure to validate that the optimizations took effect]
+- [e.g. "average response time of the /api/items endpoint", "heap size after 1000 requests"]
 ```

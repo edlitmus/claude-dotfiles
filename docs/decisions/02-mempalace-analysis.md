@@ -1,27 +1,27 @@
-# Análise Técnica: mempalace (v3.1.0)
+# Technical Analysis: mempalace (v3.1.0)
 
-**Data:** 2026-04-10
-**Status:** Decidido — usar ChromaDB diretamente (sem mempalace)
-**Repositório:** github.com/milla-jovovich/mempalace v3.1.0
-
----
-
-## O que é
-
-mempalace é um sistema de memória para agentes de IA que usa ChromaDB como backend vetorial. Organiza o conteúdo em uma estrutura hierárquica inspirada no método dos loci (técnica de memorização): palaces > wings > halls > rooms. Cada "room" armazena um fragmento semântico indexado.
-
-O projeto reporta 96.6% de recall@5 no benchmark LongMemEval — número relevante para avaliação de sistemas de memória de longo prazo.
+**Date:** 2026-04-10
+**Status:** Decided — use ChromaDB directly (no mempalace)
+**Repository:** github.com/milla-jovovich/mempalace v3.1.0
 
 ---
 
-## Interface exposta
+## What it is
+
+mempalace is a memory system for AI agents that uses ChromaDB as its vector backend. It organizes content in a hierarchical structure inspired by the method of loci (a memorization technique): palaces > wings > halls > rooms. Each "room" stores one indexed semantic fragment.
+
+The project reports 96.6% recall@5 on the LongMemEval benchmark — a relevant number for evaluating long-term memory systems.
+
+---
+
+## Exposed interface
 
 ### CLI
 
 ```bash
-mempalace init            # inicializa palace local (~/.mempalace/)
-mempalace mine            # extrai e indexa conversas/documentos
-mempalace search <query>  # busca semântica no palace
+mempalace init            # initializes a local palace (~/.mempalace/)
+mempalace mine            # extracts and indexes conversations/documents
+mempalace search <query>  # semantic search in the palace
 ```
 
 ### Python API
@@ -29,76 +29,76 @@ mempalace search <query>  # busca semântica no palace
 ```python
 # layers.py
 from mempalace.layers import search
-results = search(query="autenticação JWT", top_k=5)
+results = search(query="JWT authentication", top_k=5)
 
 # knowledge_graph.py
 from mempalace.knowledge_graph import add_entity, query_entity
-add_entity(name="ruah", type="tool", description="orquestrador de worktrees")
+add_entity(name="ruah", type="tool", description="worktree orchestrator")
 query_entity(name="ruah")
 ```
 
 ### MCP server
 
-mempalace inclui um servidor MCP embutido, o que permitiria integração direta com Claude Code sem subprocess. Este foi um ponto de interesse inicial.
+mempalace includes a built-in MCP server, which would allow direct integration with Claude Code without a subprocess. This was an initial point of interest.
 
 ### Embeddings
 
-Usa `all-MiniLM-L6-v2` via ONNX localmente — sem chamada de API externa. Dimensão: 384. Adequado para uso offline e em ambientes sem internet.
+Uses `all-MiniLM-L6-v2` via ONNX locally — no external API call. Dimension: 384. Suitable for offline use and environments without internet access.
 
 ---
 
-## Problema de instalação no Windows
+## Installation problem on Windows
 
 ```
 pip install mempalace
 ```
 
-Falha durante a compilação de `chroma-hnswlib`, dependência transitiva do ChromaDB usado internamente pelo mempalace:
+Fails while compiling `chroma-hnswlib`, a transitive dependency of the ChromaDB used internally by mempalace:
 
 ```
 error: Microsoft Visual C++ 14.0 or greater is required.
 Get it with "Microsoft C++ Build Tools"
 ```
 
-`chroma-hnswlib` é uma extensão C++ que precisa ser compilada. No Windows, exige o MSVC toolchain instalado, o que não é viável assumir no ambiente de destino.
+`chroma-hnswlib` is a C++ extension that must be compiled. On Windows it requires the MSVC toolchain to be installed, which is not a reasonable assumption in the target environment.
 
-**Contraste:** `pip install chromadb` funciona porque o ChromaDB disponibiliza wheels binárias pré-compiladas para Windows (Python 3.14 x64). O mempalace fixa uma versão específica do ChromaDB que não tem wheel disponível para a nossa combinação Python/OS.
+**Contrast:** `pip install chromadb` works because ChromaDB ships pre-compiled binary wheels for Windows (Python 3.14 x64). mempalace pins a specific ChromaDB version that has no wheel available for our Python/OS combination.
 
 ---
 
-## Decisão: usar ChromaDB diretamente
+## Decision: use ChromaDB directly
 
-A estrutura "palace" do mempalace é uma abstração útil conceitualmente, mas adiciona uma camada de complexidade desnecessária para o nosso caso de uso. O que precisamos é:
+mempalace's "palace" structure is conceptually a useful abstraction, but it adds an unnecessary layer of complexity for our use case. What we need is:
 
-1. Armazenamento persistente de vetores
-2. Busca semântica por similaridade
-3. Filtragem por metadados (projeto, data, tipo)
-4. Embeddings locais (sem API)
+1. Persistent vector storage
+2. Semantic similarity search
+3. Metadata filtering (project, date, type)
+4. Local embeddings (no API)
 
-O ChromaDB entrega os quatro nativamente.
+ChromaDB delivers all four natively.
 
-### O que ganhamos usando ChromaDB diretamente
+### What we gain by using ChromaDB directly
 
-| Funcionalidade | ChromaDB direto | via mempalace |
+| Capability | ChromaDB directly | via mempalace |
 |---|---|---|
-| Instalação no Windows | Funciona (wheel binária) | Falha (compila C++) |
-| Embeddings locais | all-MiniLM-L6-v2 (built-in) | Mesmo modelo via mempalace |
-| Busca semântica | `collection.query()` | `search()` |
-| Filtragem por metadados | `where={"project": "dotfiles"}` | Equivalente |
-| Persistência | `PersistentClient(path)` | Automático |
-| Controle da coleção | Total | Abstraído |
+| Installation on Windows | Works (binary wheel) | Fails (compiles C++) |
+| Local embeddings | all-MiniLM-L6-v2 (built-in) | Same model via mempalace |
+| Semantic search | `collection.query()` | `search()` |
+| Metadata filtering | `where={"project": "dotfiles"}` | Equivalent |
+| Persistence | `PersistentClient(path)` | Automatic |
+| Control over the collection | Full | Abstracted away |
 
-### O que perdemos
+### What we lose
 
-- Metáfora de organização (palace/wings/halls/rooms) — não usaremos
-- MCP server embutido — podemos usar ChromaDB via subprocess ou criar wrapper próprio
-- `mempalace mine` para extração automática de conversas — substituível por script próprio
+- The organizational metaphor (palace/wings/halls/rooms) — we will not use it
+- The built-in MCP server — we can use ChromaDB via a subprocess or build our own wrapper
+- `mempalace mine` for automatic conversation extraction — replaceable by our own script
 
 ---
 
-## Estratégia de fallback
+## Fallback strategy
 
-Se o ChromaDB também apresentar problemas (compatibilidade futura, regressão de wheel), temos fallback implementável com numpy:
+If ChromaDB also causes problems (future incompatibility, a wheel regression), we have a fallback that is implementable with numpy:
 
 ```python
 import numpy as np
@@ -112,34 +112,34 @@ def search_top_k(query_vec, stored_vecs, stored_metas, k=5):
     return [(stored_metas[i], scores[i]) for i in top_indices]
 ```
 
-Sem dependências externas. Sem compilação. Funciona em qualquer ambiente Python >= 3.9.
+No external dependencies. No compilation. Works in any Python >= 3.9 environment.
 
-A desvantagem é velocidade (O(n) linear scan) e ausência de persistência nativa — os vetores precisariam ser salvos manualmente em `.npz` ou similar.
+The downsides are speed (an O(n) linear scan) and the lack of native persistence — the vectors would have to be saved manually to `.npz` or similar.
 
 ---
 
-## Caminho de implementação
+## Implementation path
 
 ```
 ~/.dotfiles-memory/
-  chroma/          ← ChromaDB PersistentClient aqui
+  chroma/          ← ChromaDB PersistentClient lives here
     chroma.sqlite3
     <uuid>/
 ```
 
-Coleções a criar:
+Collections to create:
 
-| Coleção | Conteúdo | Metadados chave |
+| Collection | Content | Key metadata |
 |---|---|---|
-| `conversations` | Resumos de sessões com agentes | `date`, `project`, `agent` |
-| `decisions` | Decisões técnicas (como este arquivo) | `date`, `topic`, `verdict` |
-| `code_context` | Snippets e padrões do codebase | `file`, `language`, `project` |
+| `conversations` | Summaries of agent sessions | `date`, `project`, `agent` |
+| `decisions` | Technical decisions (like this file) | `date`, `topic`, `verdict` |
+| `code_context` | Codebase snippets and patterns | `file`, `language`, `project` |
 
 ---
 
-## Referências
+## References
 
 - ChromaDB docs: https://docs.trychroma.com/
-- Modelo de embedding: `all-MiniLM-L6-v2` (384 dims, Apache 2.0)
+- Embedding model: `all-MiniLM-L6-v2` (384 dims, Apache 2.0)
 - mempalace repo: github.com/milla-jovovich/mempalace
-- LongMemEval benchmark: métrica usada para avaliar recall em memória de longo prazo
+- LongMemEval benchmark: the metric used to evaluate long-term memory recall

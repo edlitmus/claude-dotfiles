@@ -1,12 +1,12 @@
-# Arquitetura — Sistema de Memória Unificado
+# Architecture — Unified Memory System
 
-## Visão geral
+## Overview
 
-O dotfiles configura o Claude Code com um ecossistema completo de produtividade:
-hooks automáticos, agentes especializados, skills de workflow e memória semântica
-persistente entre sessões e máquinas.
+The dotfiles configure Claude Code with a complete productivity ecosystem:
+automatic hooks, specialized agents, workflow skills, and semantic memory
+persisted across sessions and machines.
 
-## Diagrama de componentes
+## Component diagram
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -33,17 +33,17 @@ persistente entre sessões e máquinas.
 │  └──────┬────────────────┬─────────────────┬───────────────┘ │
 │         │                │                 │                 │
 │  ┌──────▼──────┐  ┌──────▼──────┐  ┌───────▼─────────────┐  │
-│  │ numpy+ONNX  │  │ ~/memory/   │  │ Obsidian (opcional)  │  │
-│  │ (vetores)   │  │ (git repo)  │  │                      │  │
-│  │ index.json  │  │ projetos/   │  │ vault/claude-memory/ │  │
+│  │ numpy+ONNX  │  │ ~/memory/   │  │ Obsidian (optional)  │  │
+│  │ (vectors)   │  │ (git repo)  │  │                      │  │
+│  │ index.json  │  │ projects/   │  │ vault/claude-memory/ │  │
 │  │ vectors.npy │  │ session/    │  │                      │  │
 │  └─────────────┘  │ global/     │  └──────────────────────┘  │
 │                    └─────────────┘                            │
 │                                                              │
 │  ┌─────────────────────────────────────────────────────────┐ │
-│  │              ruah_bridge.sh (opcional)                   │ │
-│  │  Coordena sessões paralelas com worktrees isolados      │ │
-│  │  start → injeta memória | complete → persiste contexto  │ │
+│  │              ruah_bridge.sh (optional)                   │ │
+│  │  Coordinates parallel sessions with isolated worktrees  │ │
+│  │  start → injects memory | complete → persists context   │ │
 │  └─────────────────────────────────────────────────────────┘ │
 │                                                              │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
@@ -55,58 +55,58 @@ persistente entre sessões e máquinas.
 └──────────────────────────────────────────────────────────────┘
 ```
 
-## Fluxo de dados por evento
+## Data flow per event
 
 ### SessionStart
-1. Hook injeta mensagem estática (agentes/skills disponíveis)
-2. memory_bridge.py query → busca contexto do projeto atual
-3. Resultado injetado como contexto adicional na sessão
+1. The hook injects a static message (available agents/skills)
+2. memory_bridge.py query → looks up context for the current project
+3. The result is injected as additional session context
 
 ### PreCompact
-1. Hook reforça regras (PT-BR, agentes, skills)
-2. memory_bridge.py store → salva resumo da sessão antes de compactar
+1. The hook reinforces the rules (English, agents, skills)
+2. memory_bridge.py store → saves a session summary before compacting
 
 ### Stop
-1. Hook detecta TODO/FIXME pendentes
-2. Auto-commit do ~/memory/ (se houver mudanças)
+1. The hook detects pending TODO/FIXME markers
+2. Auto-commit of ~/memory/ (if there are changes)
 
 ### /handoff
-1. Gera HANDOFF.md com estado da sessão
-2. memory_bridge.py store → persiste na memória semântica
+1. Generates HANDOFF.md with the session state
+2. memory_bridge.py store → persists it to semantic memory
 
 ### /sync-memory
-1. git pull --rebase no ~/memory/
-2. Rebuild incremental dos embeddings
-3. Sync bidirecional com Obsidian
-4. Relatório de status
+1. git pull --rebase in ~/memory/
+2. Incremental rebuild of the embeddings
+3. Bidirectional sync with Obsidian
+4. Status report
 
-## Decisões técnicas
+## Technical decisions
 
-| Decisão | Alternativas | Justificativa |
-|---------|-------------|---------------|
-| numpy + ONNX (MiniLM-L6-v2) como vector store | ChromaDB, mempalace, qdrant | Formato git-syncable (index.json + vectors.npy), sem SQLite binário, embeddings locais |
-| turboquant-vectors (opcional) | turboquant-py, numpy | Funciona no Python 3.14, 4-8x compressão para export |
-| ruah para coordenação | git worktree manual | CLI pronta com file claiming e DAG de merge |
-| ~/memory/ como git repo | banco local, cloud | Portável, versionado, push/pull simples |
-| Fallback char-trigram | — | Garante funcionamento sem dependências extras |
+| Decision | Alternatives | Rationale |
+|----------|-------------|-----------|
+| numpy + ONNX (MiniLM-L6-v2) as the vector store | ChromaDB, mempalace, qdrant | Git-syncable format (index.json + vectors.npy), no binary SQLite, local embeddings |
+| turboquant-vectors (optional) | turboquant-py, numpy | Works on Python 3.14, 4-8x compression for export |
+| ruah for coordination | manual git worktree | Ready-made CLI with file claiming and a merge DAG |
+| ~/memory/ as a git repo | local database, cloud | Portable, versioned, simple push/pull |
+| char-trigram fallback | — | Guarantees it works with no extra dependencies |
 
-Detalhes completos em:
+Full details in:
 - [docs/decisions/01-ruah-analysis.md](decisions/01-ruah-analysis.md)
 - [docs/decisions/02-mempalace-analysis.md](decisions/02-mempalace-analysis.md)
 - [docs/decisions/03-turboquant-analysis.md](decisions/03-turboquant-analysis.md)
 
-## Dependências externas
+## External dependencies
 
-| Pacote | Obrigatório | Fallback |
-|--------|------------|----------|
-| chromadb (apenas ONNX embeddings) | Não | Fallback char-trigram hashing |
-| turboquant-vectors | Não | Sem compressão (vetores raw) |
-| @levi-tc/ruah | Não | Sem coordenação paralela |
+| Package | Required | Fallback |
+|---------|----------|----------|
+| chromadb (ONNX embeddings only) | No | char-trigram hashing fallback |
+| turboquant-vectors | No | No compression (raw vectors) |
+| @levi-tc/ruah | No | No parallel coordination |
 
 ## Roadmap
 
-- [ ] MCP server próprio para memory_bridge (query/store via tools)
-- [ ] Integração com mempalace quando Windows build estiver disponível
-- [ ] Dashboard de memória via Obsidian plugin
-- [ ] Compressão TurboQuant para sync de vetores entre máquinas
-- [ ] Métricas de uso (quantas queries/stores por sessão)
+- [ ] A dedicated MCP server for memory_bridge (query/store via tools)
+- [ ] Integration with mempalace once a Windows build is available
+- [ ] Memory dashboard via an Obsidian plugin
+- [ ] TurboQuant compression for syncing vectors between machines
+- [ ] Usage metrics (how many queries/stores per session)

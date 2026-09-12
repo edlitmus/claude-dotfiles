@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Instalador de dotfiles — configura Claude Code completo em qualquer máquina
-# Idempotente: pode rodar múltiplas vezes sem efeitos colaterais
+# Dotfiles installer — sets up a complete Claude Code install on any machine
+# Idempotent: can be run multiple times with no side effects
 
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
@@ -14,12 +14,12 @@ echo "╔═══════════════════════�
 echo "║     Dotfiles — Claude Code Setup         ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
-echo "Diretório: $DOTFILES_DIR"
+echo "Directory: $DOTFILES_DIR"
 echo ""
 
 ACTIONS=()
 
-# --- Funções auxiliares ---
+# --- Helper functions ---
 
 link_file() {
     local source="$1"
@@ -36,8 +36,8 @@ link_file() {
         ACTIONS+=("Symlink: $name")
     else
         cp -f "$source" "$target"
-        echo "  [+]  $name (cópia)"
-        ACTIONS+=("Copiado: $name")
+        echo "  [+]  $name (copy)"
+        ACTIONS+=("Copied: $name")
     fi
 }
 
@@ -52,7 +52,7 @@ link_dir() {
         [ ! -e "$file" ] && continue
         local basename=$(basename "$file")
         if [ -d "$file" ]; then
-            # Recursivo para subdiretórios (skills têm subpastas)
+            # Recurse into subdirectories (skills have subfolders)
             link_dir "$file" "$target_dir/$basename" "$label/$basename"
         else
             link_file "$file" "$target_dir/$basename" "$label/$basename"
@@ -62,13 +62,13 @@ link_dir() {
     [ "$count" -gt 0 ] || [ -d "$source_dir" ]
 }
 
-# --- 1. Criar diretórios ---
-echo "📁 Criando diretórios..."
+# --- 1. Create directories ---
+echo "📁 Creating directories..."
 mkdir -p "$HOOKS_DIR" "$AGENTS_DIR" "$SKILLS_DIR" "$RULES_DIR"
 echo ""
 
-# --- 2. Arquivos principais ---
-echo "🔗 Instalando arquivos principais..."
+# --- 2. Main files ---
+echo "🔗 Installing main files..."
 link_file "$DOTFILES_DIR/claude/settings.json" "$CLAUDE_DIR/settings.json" "settings.json"
 link_file "$DOTFILES_DIR/claude/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md" "CLAUDE.md"
 link_file "$DOTFILES_DIR/claude/.mcp.json" "$CLAUDE_DIR/.mcp.json" ".mcp.json"
@@ -76,137 +76,137 @@ link_file "$DOTFILES_DIR/claude/keybindings.json" "$CLAUDE_DIR/keybindings.json"
 echo ""
 
 # --- 3. Hook ---
-echo "🪝 Instalando hooks..."
+echo "🪝 Installing hooks..."
 link_file "$DOTFILES_DIR/claude/hooks/lint_hook.sh" "$HOOKS_DIR/lint_hook.sh" "hooks/lint_hook.sh"
 chmod +x "$DOTFILES_DIR/claude/hooks/lint_hook.sh"
 chmod +x "$HOOKS_DIR/lint_hook.sh" 2>/dev/null
 echo ""
 
 # --- 4. Agents ---
-echo "🤖 Instalando agentes..."
+echo "🤖 Installing agents..."
 link_dir "$DOTFILES_DIR/claude/agents" "$AGENTS_DIR" "agents"
 echo ""
 
 # --- 5. Skills ---
-echo "⚡ Instalando skills..."
+echo "⚡ Installing skills..."
 link_dir "$DOTFILES_DIR/claude/skills" "$SKILLS_DIR" "skills"
 echo ""
 
 # --- 6. Rules ---
-echo "📏 Instalando rules..."
+echo "📏 Installing rules..."
 link_dir "$DOTFILES_DIR/claude/rules" "$RULES_DIR" "rules"
 echo ""
 
 # --- 7. Shell extras ---
-echo "🐚 Configurando shell..."
+echo "🐚 Configuring the shell..."
 SOURCE_LINE="source \"$DOTFILES_DIR/shell/.bashrc_extras\""
 if [ -f "$BASHRC" ] && grep -qF "$SOURCE_LINE" "$BASHRC"; then
-    echo "  [ok] .bashrc_extras já configurado"
+    echo "  [ok] .bashrc_extras already configured"
 else
     echo "" >> "$BASHRC"
     echo "# Dotfiles extras" >> "$BASHRC"
     echo "$SOURCE_LINE" >> "$BASHRC"
-    echo "  [+]  .bashrc_extras adicionado ao .bashrc"
+    echo "  [+]  .bashrc_extras added to .bashrc"
     ACTIONS+=(".bashrc_extras → ~/.bashrc")
 fi
 echo ""
 
-# --- 8. Dependências Python ---
-echo "🐍 Instalando dependências Python..."
+# --- 8. Python dependencies ---
+echo "🐍 Installing Python dependencies..."
 
 install_python_dep() {
     local pkg="$1"
     local label="$2"
     if python3 -c "import ${pkg//-/_}" 2>/dev/null; then
-        echo "  [ok] $label já instalado"
+        echo "  [ok] $label already installed"
     elif pip3 install "$pkg" --quiet 2>/dev/null; then
-        echo "  [+]  $label instalado"
+        echo "  [+]  $label installed"
         ACTIONS+=("pip: $label")
     else
-        echo "  [--] $label não disponível (fallback ativo)"
+        echo "  [--] $label unavailable (fallback active)"
     fi
 }
 
-install_python_dep "sentence-transformers" "Embeddings locais (MiniLM-L6-v2)"
-install_python_dep "turboquant-vectors" "TurboQuant (compressão de vetores)"
+install_python_dep "sentence-transformers" "Local embeddings (MiniLM-L6-v2)"
+install_python_dep "turboquant-vectors" "TurboQuant (vector compression)"
 echo ""
 
-# --- 9. Repositório de memória ---
-echo "🧠 Configurando memória..."
+# --- 9. Memory repository ---
+echo "🧠 Configuring memory..."
 MEMORY_DIR="${HOME}/memory"
 
 if [ -d "$MEMORY_DIR/.git" ]; then
-    echo "  [ok] Repositório de memória já existe"
+    echo "  [ok] Memory repository already exists"
     cd "$MEMORY_DIR" && git pull --quiet --rebase 2>/dev/null && cd - > /dev/null
 else
-    echo "  [+]  Criando repositório de memória..."
+    echo "  [+]  Creating the memory repository..."
     bash "$DOTFILES_DIR/scripts/setup_memory_repo.sh"
-    ACTIONS+=("Criado: ~/memory")
+    ACTIONS+=("Created: ~/memory")
 fi
 
-# Rebuild incremental dos embeddings
+# Incremental rebuild of the embeddings
 if [ -f "$DOTFILES_DIR/scripts/memory_bridge.py" ]; then
-    echo "  [+]  Reconstruindo índice de memória..."
+    echo "  [+]  Rebuilding the memory index..."
     python3 "$DOTFILES_DIR/scripts/memory_bridge.py" rebuild --incremental --quiet 2>/dev/null || true
 fi
 echo ""
 
 # --- 10. ruah ---
-echo "🔀 Verificando ruah..."
+echo "🔀 Checking ruah..."
 if command -v ruah &>/dev/null; then
-    echo "  [ok] ruah já instalado: $(ruah --version 2>/dev/null)"
+    echo "  [ok] ruah already installed: $(ruah --version 2>/dev/null)"
 else
     if command -v npm &>/dev/null; then
-        echo "  [+]  Instalando ruah..."
+        echo "  [+]  Installing ruah..."
         npm install -g @levi-tc/ruah --quiet 2>/dev/null && \
-            echo "  [ok] ruah instalado" || \
-            echo "  [--] ruah não instalado (opcional)"
+            echo "  [ok] ruah installed" || \
+            echo "  [--] ruah not installed (optional)"
     else
-        echo "  [--] npm não disponível — ruah não instalado (opcional)"
+        echo "  [--] npm unavailable — ruah not installed (optional)"
     fi
 fi
 echo ""
 
-# --- 11. Validação pós-instalação ---
-echo "🔍 Validando instalação..."
+# --- 11. Post-install validation ---
+echo "🔍 Validating the installation..."
 VALIDATION_ERRORS=0
 
-# Verificar permissões de hooks
+# Check hook permissions
 for hook in "$HOOKS_DIR"/*.sh; do
     [ ! -e "$hook" ] && continue
     if [ ! -x "$hook" ]; then
         chmod +x "$hook"
-        echo "  [fix] Permissão corrigida: $(basename "$hook")"
+        echo "  [fix] Permission fixed: $(basename "$hook")"
     fi
 done
 
-# Validar JSONs
+# Validate the JSON files
 if command -v jq &>/dev/null; then
     for json_file in "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR/keybindings.json" "$CLAUDE_DIR/.mcp.json"; do
         if [ -f "$json_file" ] && ! jq empty "$json_file" 2>/dev/null; then
-            echo "  [ERRO] JSON inválido: $(basename "$json_file")"
+            echo "  [ERROR] Invalid JSON: $(basename "$json_file")"
             VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
         fi
     done
 fi
 
 if [ "$VALIDATION_ERRORS" -eq 0 ]; then
-    echo "  [ok] Todos os arquivos validados com sucesso"
+    echo "  [ok] All files validated successfully"
 fi
 echo ""
 
 
-# --- 12. Verificar dependências ---
+# --- 12. Check dependencies ---
 bash "$DOTFILES_DIR/scripts/check_deps.sh"
 
-# --- 13. Resumo ---
+# --- 13. Summary ---
 echo ""
 echo "╔══════════════════════════════════════════╗"
-echo "║              Resumo                      ║"
+echo "║              Summary                     ║"
 echo "╚══════════════════════════════════════════╝"
 
 if [ ${#ACTIONS[@]} -eq 0 ]; then
-    echo "  Nenhuma alteração — tudo já estava configurado."
+    echo "  No changes — everything was already configured."
 else
     for action in "${ACTIONS[@]}"; do
         echo "  • $action"
@@ -214,20 +214,20 @@ else
 fi
 
 echo ""
-echo "📦 Instalado:"
-echo "  • CLAUDE.md          — convenções globais"
+echo "📦 Installed:"
+echo "  • CLAUDE.md          — global conventions"
 echo "  • settings.json      — hooks + permissions"
 echo "  • .mcp.json          — GitHub MCP server"
-echo "  • keybindings.json   — atalhos de teclado"
-echo "  • 1 hook             — lint automático"
+echo "  • keybindings.json   — keyboard shortcuts"
+echo "  • 1 hook             — automatic lint"
 echo "  • 8 agents           — frontend, backend, database, architect, devops, security, fadex-context, data-analyst"
-echo "  • 20 skills          — /review, /ship, /refactor, /test, /debug, /handoff, /boot, /sync-memory e mais 12"
+echo "  • 20 skills          — /review, /ship, /refactor, /test, /debug, /handoff, /boot, /sync-memory and 12 more"
 echo "  • 6 rules            — python, typescript, go, sql, security, testing"
-echo "  • memory_bridge.py   — memória semântica numpy + ONNX (MiniLM-L6-v2)"
-echo "  • ruah_bridge.sh     — integração com sessões paralelas"
+echo "  • memory_bridge.py   — semantic memory, numpy + ONNX (MiniLM-L6-v2)"
+echo "  • ruah_bridge.sh     — integration with parallel sessions"
 echo ""
-echo "⚠️  Configure GITHUB_TOKEN para o MCP GitHub funcionar:"
-echo "    export GITHUB_TOKEN='ghp_seu_token_aqui'"
+echo "⚠️  Set GITHUB_TOKEN for the GitHub MCP server to work:"
+echo "    export GITHUB_TOKEN='ghp_your_token_here'"
 echo ""
-echo "✅ Instalação concluída!"
-echo "   Execute 'source ~/.bashrc' ou abra um novo terminal."
+echo "✅ Installation complete!"
+echo "   Run 'source ~/.bashrc' or open a new terminal."

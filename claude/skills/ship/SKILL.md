@@ -1,60 +1,60 @@
 ---
 name: ship
-description: Prepara o código para deploy — roda lint, testes, valida build e cria commit/PR se tudo passar.
-argument-hint: "[mensagem de commit opcional]"
+description: Prepares the code for deployment — runs lint and tests, validates the build, and creates a commit/PR if everything passes.
+argument-hint: "[optional commit message]"
 user-invocable: true
 allowed-tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 effort: high
 ---
 
-# Ship — Preparar para deploy
+# Ship — Prepare for deployment
 
-Execute o pipeline completo de validação antes de entregar o código.
+Run the full validation pipeline before delivering the code.
 
 ## Pipeline
-Execute cada etapa em ordem. Pare se alguma falhar.
+Run each stage in order. Stop if any of them fails.
 
 ### 1. Status
 ```bash
 git status
 git diff --stat
 ```
-Mostre o que será entregue.
+Show what is going to be delivered.
 
 ### 2. Lint & Format
-Rode as ferramentas de lint do projeto:
+Run the project's lint tools:
 - Python: `ruff check --fix && ruff format`
 - JS/TS: `npx eslint --fix && npx prettier --write`
 - Go: `gofmt -w && golangci-lint run --fix`
 - SQL: `sqlfluff fix`
 
-Detecte pelo projeto quais linguagens existem.
+Detect from the project which languages are present.
 
-### 3. Testes
-Detecte e rode a suite de testes:
-- Python: `pytest` ou `python -m pytest`
-- JS/TS: `npm test` ou `npx vitest run` ou `npx jest`
+### 3. Tests
+Detect and run the test suite:
+- Python: `pytest` or `python -m pytest`
+- JS/TS: `npm test` or `npx vitest run` or `npx jest`
 - Go: `go test ./...`
 
-### 4. Build (se aplicável)
-- JS/TS: `npm run build` ou `npx tsc --noEmit`
+### 4. Build (if applicable)
+- JS/TS: `npm run build` or `npx tsc --noEmit`
 - Go: `go build ./...`
-- Python: verificar syntax com `python -m py_compile`
+- Python: check syntax with `python -m py_compile`
 
 ### 5. Commit
-Se todas as etapas passaram:
-- Stage os arquivos alterados
-- Crie o commit com a mensagem fornecida ou gere uma baseada nos changes
-- Use prefixos convencionais: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
+If every stage passed:
+- Stage the changed files
+- Create the commit with the provided message, or generate one from the changes
+- Use conventional prefixes: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
 
-### 6. Relatório final
+### 6. Final report
 ```
 ## Ship Report
 - Lint:    ✅/❌
-- Testes:  ✅/❌ (X passed, Y failed)
+- Tests:   ✅/❌ (X passed, Y failed)
 - Build:   ✅/❌/N/A
-- Commit:  [hash] mensagem
+- Commit:  [hash] message
 ```
 
-Se algo falhou, mostre o erro e sugira como corrigir.
+If something failed, show the error and suggest how to fix it.

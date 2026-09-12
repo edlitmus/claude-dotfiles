@@ -1,7 +1,7 @@
 ---
 name: brainstorm
-description: Ideação criativa estruturada — gera, avalia e prioriza ideias.
-argument-hint: "<problema ou tema>"
+description: Structured creative ideation — generates, evaluates, and prioritizes ideas.
+argument-hint: "<problem or topic>"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash
 model: opus
@@ -9,72 +9,72 @@ effort: high
 context: fork
 ---
 
-# Brainstorm — Ideação Criativa
+# Brainstorm — Creative Ideation
 
-Explore soluções criativas para: `$ARGUMENTS`
+Explore creative solutions for: `$ARGUMENTS`
 
-## Processo
+## Process
 
-### Fase 1 — Entender o problema
-1. Reformule o problema em 1 frase clara
-2. Identifique constraints conhecidos (tempo, tech, equipe, orçamento)
-3. Defina critérios de sucesso: como saber que a solução funciona?
+### Phase 1 — Understand the problem
+1. Restate the problem in 1 clear sentence
+2. Identify known constraints (time, tech, team, budget)
+3. Define success criteria: how will we know the solution works?
 
-### Fase 2 — Gerar ideias (sem filtro)
-Gere **pelo menos 5 ideias** sem julgar viabilidade:
-- Inclua abordagens conservadoras E ousadas
-- Considere: soluções existentes, analogias de outros domínios, inversão do problema
-- Cada ideia em 1-2 frases
+### Phase 2 — Generate ideas (unfiltered)
+Generate **at least 5 ideas** without judging feasibility:
+- Include both conservative AND bold approaches
+- Consider: existing solutions, analogies from other domains, inverting the problem
+- Each idea in 1-2 sentences
 
-### Fase 3 — Avaliar
-Para cada ideia, avalie em 3 dimensões:
+### Phase 3 — Evaluate
+For each idea, score 3 dimensions:
 
-| Ideia | Viabilidade (1-5) | Impacto (1-5) | Esforço (1-5) | Score |
-|-------|-------------------|---------------|---------------|-------|
-| ... | ... | ... | ... | V×I/E |
+| Idea | Feasibility (1-5) | Impact (1-5) | Effort (1-5) | Score |
+|------|-------------------|--------------|--------------|-------|
+| ... | ... | ... | ... | F×I/E |
 
-- **Viabilidade**: é tecnicamente possível com os constraints?
-- **Impacto**: resolve o problema de verdade?
-- **Esforço**: quanto trabalho? (1=muito, 5=pouco)
-- **Score**: Viabilidade × Impacto / Esforço
+- **Feasibility**: is it technically possible within the constraints?
+- **Impact**: does it really solve the problem?
+- **Effort**: how much work? (1=a lot, 5=a little)
+- **Score**: Feasibility × Impact / Effort
 
-### Fase 4 — Recomendar
-1. Top 3 ideias por score
-2. Para cada uma: próximos passos concretos (1-3 ações)
-3. Riscos principais e mitigações
+### Phase 4 — Recommend
+1. Top 3 ideas by score
+2. For each: concrete next steps (1-3 actions)
+3. Main risks and mitigations
 
-## Formato de saída
+## Output format
 
 ```
-## Brainstorm: [tema]
+## Brainstorm: [topic]
 
-### Problema
-[1 frase clara]
+### Problem
+[1 clear sentence]
 
 ### Constraints
 - [constraint 1]
 - [constraint 2]
 
-### Ideias
-1. **[Nome]** — [descrição]
-2. **[Nome]** — [descrição]
+### Ideas
+1. **[Name]** — [description]
+2. **[Name]** — [description]
 ...
 
-### Avaliação
-[tabela com scores]
+### Evaluation
+[table with scores]
 
-### Recomendação
-**Top pick**: [ideia] — Score X.X
-- Próximo passo 1: [ação]
-- Próximo passo 2: [ação]
-- Risco: [risco] → Mitigação: [como]
+### Recommendation
+**Top pick**: [idea] — Score X.X
+- Next step 1: [action]
+- Next step 2: [action]
+- Risk: [risk] → Mitigation: [how]
 
-**Alternativa**: [ideia 2]
+**Alternative**: [idea 2]
 - ...
 ```
 
-## Regras
-- Quantidade antes de qualidade na Fase 2
-- Avaliação honesta — não infle scores para sua ideia favorita
-- Se o problema é técnico, considere soluções não-técnicas também
-- Se o problema é de processo, considere automação
+## Rules
+- Quantity before quality in Phase 2
+- Honest evaluation — do not inflate scores for your favorite idea
+- If the problem is technical, consider non-technical solutions too
+- If the problem is about process, consider automation

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Verifica dependências de lint/format
-# Não instala nada — apenas informa o que está faltando
+# Checks lint/format dependencies
+# Installs nothing — only reports what is missing
 
-echo "=== Verificação de dependências de lint/format ==="
+echo "=== Lint/format dependency check ==="
 echo ""
 
 MISSING=0
@@ -14,23 +14,23 @@ check_tool() {
     display_name=$(printf "%-15s" "$tool")
 
     if command -v "$tool" &>/dev/null; then
-        echo "[✅] $display_name encontrado"
+        echo "[✅] $display_name found"
     else
-        echo "[❌] $display_name não encontrado — instale com: $install_hint"
+        echo "[❌] $display_name not found — install with: $install_hint"
         MISSING=$((MISSING + 1))
     fi
 }
 
-check_tool "jq"             "sudo apt install jq (ou brew install jq)"
+check_tool "jq"             "sudo apt install jq (or brew install jq)"
 check_tool "ruff"           "pip install ruff"
 check_tool "sqlfluff"       "pip install sqlfluff"
 check_tool "golangci-lint"  "go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
-check_tool "gofmt"          "instale Go (https://go.dev/dl/)"
-check_tool "npx"            "instale Node.js (https://nodejs.org/)"
+check_tool "gofmt"          "install Go (https://go.dev/dl/)"
+check_tool "npx"            "install Node.js (https://nodejs.org/)"
 
 echo ""
 if [ "$MISSING" -eq 0 ]; then
-    echo "✅ Todas as dependências estão instaladas!"
+    echo "✅ All dependencies are installed!"
 else
-    echo "⚠️  $MISSING dependência(s) não encontrada(s) — veja os comandos acima."
+    echo "⚠️  $MISSING dependency/dependencies not found — see the commands above."
 fi

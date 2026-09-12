@@ -1,6 +1,6 @@
 ---
 name: compact
-description: Resume o contexto da sessão atual para liberar janela de contexto.
+description: Summarizes the current session's context to free up the context window.
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash
 model: sonnet
@@ -10,74 +10,74 @@ context: fork
 
 # Compact
 
-Analise o histórico da conversa atual e gere um resumo estruturado do contexto de trabalho. O objetivo é produzir um bloco copiável que permita continuar o trabalho em uma nova sessão sem perda de contexto relevante.
+Analyze the current conversation history and produce a structured summary of the working context. The goal is to produce a copyable block that lets the work continue in a new session without losing relevant context.
 
-## Processo
+## Process
 
-### 1. Analise o histórico da conversa
-Percorra a conversa completa identificando:
-- Qual projeto está sendo trabalhado (nome, stack, objetivo principal)
-- Decisões técnicas tomadas e os motivos por trás delas
-- Arquivos que foram lidos, criados ou modificados (com caminhos absolutos)
-- Problemas diagnosticados e resolvidos
-- Tarefas iniciadas mas ainda não concluídas
-- O ponto exato onde o trabalho foi interrompido
+### 1. Analyze the conversation history
+Go through the whole conversation, identifying:
+- Which project is being worked on (name, stack, main goal)
+- Technical decisions made and the reasons behind them
+- Files that were read, created, or modified (with absolute paths)
+- Problems diagnosed and resolved
+- Tasks started but not yet finished
+- The exact point where the work was interrupted
 
-### 2. Complemente com as ferramentas
-Use as ferramentas disponíveis para confirmar o estado atual:
-- `Read` para verificar o conteúdo atual de arquivos modificados
-- `Grep` para localizar trechos de código discutidos
-- `Glob` para listar arquivos de diretórios mencionados
-- `Bash` para checar o estado do repositório (`git status`, `git log --oneline -5`)
+### 2. Complement with the tools
+Use the available tools to confirm the current state:
+- `Read` to check the current content of modified files
+- `Grep` to locate code snippets that were discussed
+- `Glob` to list files in mentioned directories
+- `Bash` to check the repository state (`git status`, `git log --oneline -5`)
 
-### 3. Gere o resumo
-Produza o bloco abaixo com no máximo 500 palavras. Foque em contexto acionável, não em histórico de conversa.
+### 3. Produce the summary
+Produce the block below in at most 500 words. Focus on actionable context, not on conversation history.
 
-## Formato do Resumo
+## Summary Format
 
 ```
-## Resumo da Sessão
+## Session Summary
 
-### Contexto do Projeto
-- **Projeto**: [nome ou descrição]
-- **Stack**: [linguagens, frameworks, ferramentas principais]
-- **Objetivo**: [o que estava sendo construído ou resolvido]
-- **Diretório raiz**: [caminho absoluto]
+### Project Context
+- **Project**: [name or description]
+- **Stack**: [languages, frameworks, main tools]
+- **Goal**: [what was being built or solved]
+- **Root directory**: [absolute path]
 
-### Decisões Tomadas
-- [Decisão 1]: [motivo em uma frase]
-- [Decisão 2]: [motivo em uma frase]
+### Decisions Made
+- [Decision 1]: [reason in one sentence]
+- [Decision 2]: [reason in one sentence]
 
-### Arquivos Modificados
-- `/caminho/absoluto/arquivo.ext`: [o que foi alterado e por quê]
-- `/caminho/absoluto/outro.ext`: [o que foi alterado e por quê]
+### Modified Files
+- `/absolute/path/file.ext`: [what changed and why]
+- `/absolute/path/other.ext`: [what changed and why]
 
-### Problemas Resolvidos
-- [Descrição do problema]: [como foi resolvido]
+### Problems Resolved
+- [Problem description]: [how it was resolved]
 
-### Pendências
-- [ ] [Tarefa pendente 1 -- descritiva o suficiente para ser retomada sem contexto adicional]
-- [ ] [Tarefa pendente 2]
+### Pending Work
+- [ ] [Pending task 1 -- descriptive enough to be picked up without extra context]
+- [ ] [Pending task 2]
 
-### Estado Atual
-[2-3 frases descrevendo exatamente onde o trabalho parou. Inclua arquivo e linha se aplicável.]
+### Current State
+[2-3 sentences describing exactly where the work stopped. Include file and line if applicable.]
 ```
 
-## Regras
+## Rules
 
-- Limite: 500 palavras -- corte detalhes de conversa, preserve contexto acionável.
-- Use sempre caminhos absolutos, nunca relativos.
-- Quando um arquivo foi modificado em trecho específico, indique o número de linha.
-- Distingua claramente entre o que foi concluído e o que está em andamento.
-- Não inclua trechos longos de código -- referencie arquivo e linha.
-- Não inclua histórico de tentativas fracassadas, apenas o estado final correto.
+- Limit: 500 words -- cut conversation details, preserve actionable context.
+- Always use absolute paths, never relative ones.
+- When a file was modified in a specific spot, indicate the line number.
+- Clearly distinguish between what is done and what is in progress.
+- Do not include long code snippets -- reference the file and line.
+- Do not include a history of failed attempts, only the correct final state.
 
-## Saída Final
+## Final Output
 
-Após o bloco de resumo, exiba esta instrução para o usuário:
+After the summary block, show this instruction to the user:
 
 ---
 
-**Cole o resumo abaixo em uma nova sessão para continuar o trabalho:**
+**Paste the summary below into a new session to continue the work:**
 
-> "Continuando sessão anterior. Contexto: [cole o bloco acima aqui]. Retome a partir das pendências listadas."
+> "Continuing a previous session. Context: [paste the block above here]. Resume from the pending items listed."

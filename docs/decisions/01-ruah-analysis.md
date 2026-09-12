@@ -1,108 +1,108 @@
-# Análise Técnica: ruah (@levi-tc/ruah v0.4.3)
+# Technical Analysis: ruah (@levi-tc/ruah v0.4.3)
 
-**Data:** 2026-04-10
-**Status:** Decidido — integrar via bridge script
-**Pacote atual:** `@levi-tc/ruah` v0.4.3 (depreciado → `@ruah-dev/orch`)
-
----
-
-## O que é
-
-ruah é um orquestrador de tarefas para agentes de IA que utiliza git worktrees como unidade de isolamento. Cada tarefa recebe seu próprio worktree, permitindo execução paralela sem conflitos de branches.
+**Date:** 2026-04-10
+**Status:** Decided — integrate via a bridge script
+**Current package:** `@levi-tc/ruah` v0.4.3 (deprecated → `@ruah-dev/orch`)
 
 ---
 
-## Comandos disponíveis
+## What it is
 
-### Inicialização e configuração
+ruah is a task orchestrator for AI agents that uses git worktrees as the unit of isolation. Each task gets its own worktree, allowing parallel execution without branch conflicts.
 
-| Comando | Descrição |
+---
+
+## Available commands
+
+### Initialization and configuration
+
+| Command | Description |
 |---|---|
-| `ruah init` | Inicializa `.ruah/` no repositório git (requer ao menos 1 commit) |
-| `ruah setup` | Configuração inicial do ambiente |
-| `ruah config` | Gerencia configurações |
-| `ruah doctor` | Diagnóstico do ambiente |
-| `ruah status` | Estado atual das tarefas |
-| `ruah clean` | Limpeza de worktrees e estado |
-| `ruah demo` | Demonstração interativa |
+| `ruah init` | Initializes `.ruah/` in the git repository (requires at least 1 commit) |
+| `ruah setup` | Initial environment setup |
+| `ruah config` | Manages configuration |
+| `ruah doctor` | Environment diagnostics |
+| `ruah status` | Current state of the tasks |
+| `ruah clean` | Cleans up worktrees and state |
+| `ruah demo` | Interactive demo |
 
-### Ciclo de vida de tarefas
+### Task life cycle
 
-| Comando | Descrição |
+| Command | Description |
 |---|---|
-| `ruah task create` | Cria nova tarefa (com worktree) |
-| `ruah task start` | Inicia execução da tarefa |
-| `ruah task done` | Marca tarefa como concluída |
-| `ruah task merge` | Faz merge do worktree de volta ao branch principal |
-| `ruah task list` | Lista todas as tarefas e seus estados |
-| `ruah task cancel` | Cancela uma tarefa |
-| `ruah task retry` | Retenta uma tarefa com falha |
-| `ruah task takeover` | Reassume controle de uma tarefa em execução |
+| `ruah task create` | Creates a new task (with a worktree) |
+| `ruah task start` | Starts running the task |
+| `ruah task done` | Marks the task as complete |
+| `ruah task merge` | Merges the worktree back into the main branch |
+| `ruah task list` | Lists every task and its state |
+| `ruah task cancel` | Cancels a task |
+| `ruah task retry` | Retries a failed task |
+| `ruah task takeover` | Takes back control of a running task |
 
 ### Workflows
 
-| Comando | Descrição |
+| Command | Description |
 |---|---|
-| `ruah workflow run` | Executa um workflow definido em markdown |
-| `ruah workflow plan` | Analisa e planeja a execução (DAG) |
-| `ruah workflow list` | Lista workflows disponíveis |
-| `ruah workflow create` | Cria novo arquivo de workflow |
+| `ruah workflow run` | Runs a workflow defined in markdown |
+| `ruah workflow plan` | Analyzes and plans the execution (DAG) |
+| `ruah workflow list` | Lists the available workflows |
+| `ruah workflow create` | Creates a new workflow file |
 
 ---
 
-## Funcionalidades relevantes
+## Relevant features
 
 ### File claiming
 
-Ao criar uma tarefa, é possível declarar os arquivos que ela vai modificar:
+When creating a task, you can declare the files it will modify:
 
 ```bash
-ruah task create "implementar autenticação" --files "src/auth/**" --files "tests/auth/**"
+ruah task create "implement authentication" --files "src/auth/**" --files "tests/auth/**"
 ```
 
-Isso registra contratos de modificação no `.ruah-task.md` da tarefa.
+This records modification contracts in the task's `.ruah-task.md`.
 
-### Contratos de modificação
+### Modification contracts
 
-O arquivo `.ruah-task.md` define fronteiras de acesso entre tarefas concorrentes:
+The `.ruah-task.md` file defines access boundaries between concurrent tasks:
 
-- **owned** — arquivo pertence exclusivamente à tarefa
-- **shared-append** — múltiplas tarefas podem adicionar conteúdo
-- **read-only** — tarefa só lê, não modifica
+- **owned** — the file belongs exclusively to the task
+- **shared-append** — multiple tasks may append content
+- **read-only** — the task only reads, it does not modify
 
-Isso evita conflitos em execuções paralelas sem exigir locks explícitos.
+This avoids conflicts in parallel runs without requiring explicit locks.
 
-### Executores suportados
+### Supported executors
 
-| Executor | Descrição |
+| Executor | Description |
 |---|---|
-| `claude-code` | Claude Code via CLI |
-| `aider` | Aider (modo interativo ou automático) |
+| `claude-code` | Claude Code via the CLI |
+| `aider` | Aider (interactive or automatic mode) |
 | `codex` | OpenAI Codex CLI |
-| `open-code` | Open-source alternativa |
-| `script` | Script shell arbitrário |
+| `open-code` | Open-source alternative |
+| `script` | An arbitrary shell script |
 
-### Execução paralela
+### Parallel execution
 
-O planejador analisa overlaps de arquivos entre tarefas e decide quais podem rodar em paralelo. Tarefas com conflito de arquivos são serializadas automaticamente.
+The planner analyzes file overlaps between tasks and decides which ones can run in parallel. Tasks with file conflicts are serialized automatically.
 
-### Subtarefas
+### Subtasks
 
-Tarefas podem ter hierarquia via `--parent`:
+Tasks can be hierarchical via `--parent`:
 
 ```bash
-ruah task create "implementar endpoint POST /users" --parent task-uuid-pai
+ruah task create "implement the POST /users endpoint" --parent parent-task-uuid
 ```
 
-A subtarefa cria um worktree que parte do branch do pai, não do main.
+The subtask creates a worktree branching from the parent's branch, not from main.
 
-### Integração com crag
+### Integration with crag
 
-Antes do `task merge`, o ruah pode chamar o crag como quality gate — verificando cobertura de testes, lint e outros critérios antes de aceitar o merge.
+Before `task merge`, ruah can call crag as a quality gate — checking test coverage, lint, and other criteria before accepting the merge.
 
-### Estado persistido
+### Persisted state
 
-Todo o estado fica em `.ruah/state.json` com a seguinte estrutura:
+All state lives in `.ruah/state.json` with the following structure:
 
 ```json
 {
@@ -115,43 +115,43 @@ Todo o estado fica em `.ruah/state.json` com a seguinte estrutura:
 
 ---
 
-## Limitações identificadas
+## Limitations identified
 
-| Limitação | Impacto | Mitigação |
+| Limitation | Impact | Mitigation |
 |---|---|---|
-| Pacote depreciado (`@levi-tc/ruah`) | Médio — sem novas correções | Migrar para `@ruah-dev/orch` quando estável |
-| Sem injeção de memória/contexto | Alto — agentes partem sem histórico | Bridge script injeta contexto via `--context` ou arquivo temp |
-| Requer ao menos 1 commit para `init` | Baixo — condição conhecida | Documentar no README |
-| Sem sistema de hooks nativo | Médio — lifecycle só via workflows | Envolver comandos ruah com bridge script |
-| Worktrees exigem disco extra | Baixo — proporcional ao tamanho do repo | Monitorar com `ruah clean` periódico |
+| Deprecated package (`@levi-tc/ruah`) | Medium — no new fixes | Migrate to `@ruah-dev/orch` once it is stable |
+| No memory/context injection | High — agents start with no history | The bridge script injects context via `--context` or a temp file |
+| Requires at least 1 commit for `init` | Low — known condition | Document it in the README |
+| No native hook system | Medium — lifecycle only via workflows | Wrap the ruah commands with the bridge script |
+| Worktrees require extra disk | Low — proportional to the repo size | Monitor with periodic `ruah clean` |
 
 ---
 
-## Decisão de integração
+## Integration decision
 
-**Veredicto:** Integrar via `ruah_bridge.sh`.
+**Verdict:** Integrate via `ruah_bridge.sh`.
 
-O bridge script envolve os comandos ruah e adiciona as capacidades que faltam:
+The bridge script wraps the ruah commands and adds the missing capabilities:
 
 ```
-ruah task create  →  bridge injeta contexto de memória (ChromaDB/numpy)
-ruah task done    →  bridge persiste resultado no vetor store
-ruah task merge   →  bridge atualiza índice de memória com o diff mergeado
+ruah task create  →  the bridge injects memory context (ChromaDB/numpy)
+ruah task done    →  the bridge persists the result to the vector store
+ruah task merge   →  the bridge updates the memory index with the merged diff
 ```
 
-Isso mantém o ruah como orquestrador de worktrees (sua responsabilidade principal) sem modificar o pacote. A memória e o contexto ficam no bridge, que é nosso código.
+This keeps ruah as the worktree orchestrator (its core responsibility) without modifying the package. Memory and context live in the bridge, which is our own code.
 
-### Por que não migrar agora para `@ruah-dev/orch`
+### Why not migrate to `@ruah-dev/orch` now
 
-- A API do `@ruah-dev/orch` ainda não está estável o suficiente para analisar
-- `@levi-tc/ruah` v0.4.3 funciona e tem comportamento conhecido
-- Migração é uma tarefa isolada que não bloqueia o bridge
+- The `@ruah-dev/orch` API is not yet stable enough to analyze
+- `@levi-tc/ruah` v0.4.3 works and has known behavior
+- Migration is an isolated task that does not block the bridge
 
 ---
 
-## Referências
+## References
 
-- Pacote atual: `npm install -g @levi-tc/ruah`
-- Pacote successor: `npm install -g @ruah-dev/orch`
-- Estado local: `.ruah/state.json`
-- Contratos de arquivo: `.ruah-task.md` por worktree
+- Current package: `npm install -g @levi-tc/ruah`
+- Successor package: `npm install -g @ruah-dev/orch`
+- Local state: `.ruah/state.json`
+- File contracts: `.ruah-task.md` per worktree

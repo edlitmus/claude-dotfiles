@@ -1,7 +1,7 @@
 ---
 name: explore
-description: Exploração estruturada de codebase — discovery e deep dive.
-argument-hint: "[diretório ou pergunta sobre o código]"
+description: Structured codebase exploration — discovery and deep dive.
+argument-hint: "[directory or question about the code]"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Agent
 model: sonnet
@@ -9,81 +9,81 @@ effort: high
 context: fork
 ---
 
-# Explore — Exploração Estruturada de Codebase
+# Explore — Structured Codebase Exploration
 
-Explore o codebase: `$ARGUMENTS`
+Explore the codebase: `$ARGUMENTS`
 
-## Fase 1 — Discovery (visão geral)
+## Phase 1 — Discovery (overview)
 
-### 1. Estrutura do projeto
+### 1. Project structure
 ```bash
-# Árvore de diretórios (excluir node_modules, .git, etc.)
+# Directory tree (excluding node_modules, .git, etc.)
 find . -type f -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/__pycache__/*' | head -100
 ```
 
-### 2. Stack e dependências
-- Identificar: linguagem(ns), framework(s), banco(s), ferramentas
-- Ler: package.json, go.mod, pyproject.toml, requirements.txt, Cargo.toml
-- Mapear dependências principais e suas versões
+### 2. Stack and dependencies
+- Identify: language(s), framework(s), database(s), tools
+- Read: package.json, go.mod, pyproject.toml, requirements.txt, Cargo.toml
+- Map the main dependencies and their versions
 
 ### 3. Entry points
-- Identificar ponto(s) de entrada: main, index, app, server
-- Traçar o fluxo de inicialização
+- Identify the entry point(s): main, index, app, server
+- Trace the initialization flow
 
-### 4. Padrões arquiteturais
-- Organização: monolito, monorepo, microserviços
-- Camadas: MVC, Clean Architecture, Hexagonal
-- Comunicação: REST, GraphQL, gRPC, eventos
+### 4. Architectural patterns
+- Organization: monolith, monorepo, microservices
+- Layers: MVC, Clean Architecture, Hexagonal
+- Communication: REST, GraphQL, gRPC, events
 
-### 5. Mapa de arquitetura
+### 5. Architecture map
 ```
-## Mapa de Arquitetura
+## Architecture Map
 
 ### Stack
-- Linguagem: [X]
+- Language: [X]
 - Framework: [Y]
-- Banco: [Z]
+- Database: [Z]
 - Infra: [Docker/K8s/etc]
 
-### Estrutura
-[diagrama em texto da organização de diretórios]
+### Structure
+[text diagram of the directory organization]
 
-### Fluxo principal
-[entry point] → [camada 1] → [camada 2] → [dados]
+### Main flow
+[entry point] → [layer 1] → [layer 2] → [data]
 
-### Dependências críticas
-- [lib]: [para que é usada]
+### Critical dependencies
+- [lib]: [what it is used for]
 ```
 
-## Fase 2 — Deep Dive (foco específico)
+## Phase 2 — Deep Dive (specific focus)
 
-Se o usuário pediu algo específico (ex: "como funciona a autenticação"):
+If the user asked for something specific (e.g. "how does authentication work"):
 
-### 1. Localizar
-- Grep por termos relevantes
-- Identificar arquivos-chave
+### 1. Locate
+- Grep for relevant terms
+- Identify the key files
 
-### 2. Traçar
-- Seguir o fluxo de dados/controle
-- Mapear chamadas: quem chama → quem é chamado
+### 2. Trace
+- Follow the data/control flow
+- Map the calls: who calls → who is called
 
-### 3. Documentar
+### 3. Document
 ```
-## Deep Dive: [tópico]
+## Deep Dive: [topic]
 
-### Arquivos envolvidos
-- [path]: [responsabilidade]
+### Files involved
+- [path]: [responsibility]
 
-### Fluxo
-1. [passo] — [arquivo:linha]
-2. [passo] — [arquivo:linha]
+### Flow
+1. [step] — [file:line]
+2. [step] — [file:line]
 
-### Pontos de atenção
-- [observação relevante]
+### Points of attention
+- [relevant observation]
 ```
 
-## Quando usar
-- Projeto novo: "como esse projeto funciona?"
-- Onboarding: "me explique a arquitetura"
-- Investigação: "onde fica a lógica de X?"
-- Antes de mudanças grandes: entender o terreno
+## When to use
+- A new project: "how does this project work?"
+- Onboarding: "explain the architecture to me"
+- Investigation: "where is the logic for X?"
+- Before big changes: understanding the terrain

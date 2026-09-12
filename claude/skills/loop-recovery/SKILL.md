@@ -1,7 +1,7 @@
 ---
 name: loop-recovery
-description: Detecta e recupera de loops de retry, oscilação ou drift. Use quando perceber que está repetindo ações sem progresso.
-argument-hint: "[descrição opcional do problema]"
+description: Detects and recovers from retry loops, oscillation, or drift. Use when you notice you are repeating actions without progress.
+argument-hint: "[optional problem description]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Bash
@@ -11,84 +11,84 @@ effort: high
 
 # Loop Recovery
 
-Pare, analise e recupere de um padrão improdutivo.
+Stop, analyze, and recover from an unproductive pattern.
 
-## Diagnóstico — Identifique o padrão
+## Diagnosis — Identify the pattern
 
-### 1. Oscilação (A → B → A → B)
-Está alternando entre duas abordagens sem convergir?
+### 1. Oscillation (A → B → A → B)
+Are you alternating between two approaches without converging?
 ```
-Sinais:
-- Desfez uma mudança que acabou de fazer
-- Alternando entre duas implementações
-- Revertendo e re-aplicando o mesmo fix
-```
-
-### 2. Retry cego (A → A → A)
-Está repetindo a mesma ação esperando resultado diferente?
-```
-Sinais:
-- Mesmo comando falhou 2+ vezes seguidas
-- Mesmo erro aparece após cada tentativa
-- Ajustes mínimos que não atacam a causa raiz
+Signs:
+- Undid a change you just made
+- Alternating between two implementations
+- Reverting and re-applying the same fix
 ```
 
-### 3. Drift (escopo expandindo)
-Está tocando arquivos não-relacionados ao problema original?
+### 2. Blind retry (A → A → A)
+Are you repeating the same action expecting a different result?
 ```
-Sinais:
-- Editou 5+ arquivos para um fix que deveria ser em 1-2
-- Está "consertando" coisas que não estavam quebradas
-- Perdeu de vista o objetivo original
-```
-
-### 4. Rabbit hole (profundidade excessiva)
-Está descendo camadas de abstração sem resolver o problema de superfície?
-```
-Sinais:
-- Está debugando o framework em vez do código do usuário
-- Chegou em código de terceiros/stdlib
-- O fix requer entender 5+ camadas de indireção
+Signs:
+- The same command failed 2+ times in a row
+- The same error appears after every attempt
+- Minimal tweaks that do not address the root cause
 ```
 
-## Protocolo de recuperação
+### 3. Drift (expanding scope)
+Are you touching files unrelated to the original problem?
+```
+Signs:
+- Edited 5+ files for a fix that should touch 1-2
+- You are "fixing" things that were not broken
+- You lost sight of the original goal
+```
 
-### Passo 1 — PARAR
-Não tente mais uma vez. Pare completamente.
+### 4. Rabbit hole (excessive depth)
+Are you descending through abstraction layers without solving the surface problem?
+```
+Signs:
+- You are debugging the framework instead of the user's code
+- You reached third-party/stdlib code
+- The fix requires understanding 5+ layers of indirection
+```
 
-### Passo 2 — Diagnosticar
-Identifique qual dos 4 padrões acima está acontecendo.
-Liste as últimas 3 ações tomadas e seus resultados.
+## Recovery protocol
 
-### Passo 3 — Pivotar
-Escolha UMA estratégia de pivot baseada no diagnóstico:
+### Step 1 — STOP
+Do not try one more time. Stop completely.
 
-| Padrão | Pivot |
+### Step 2 — Diagnose
+Identify which of the 4 patterns above is happening.
+List the last 3 actions taken and their results.
+
+### Step 3 — Pivot
+Choose ONE pivot strategy based on the diagnosis:
+
+| Pattern | Pivot |
 |---|---|
-| **Oscilação** | Escolha a abordagem A ou B definitivamente. Liste prós/contras de cada. Comprometa-se com uma. |
-| **Retry cego** | Releia o erro com calma. Identifique a causa raiz real (não o sintoma). Tente uma abordagem FUNDAMENTALMENTE diferente. |
-| **Drift** | Volte ao objetivo original. Liste apenas os arquivos essenciais. Desfaça mudanças não-relacionadas. |
-| **Rabbit hole** | Suba de volta para o nível do problema do usuário. Considere um workaround em vez de fix profundo. |
+| **Oscillation** | Pick approach A or B definitively. List pros/cons of each. Commit to one. |
+| **Blind retry** | Reread the error calmly. Identify the real root cause (not the symptom). Try a FUNDAMENTALLY different approach. |
+| **Drift** | Return to the original goal. List only the essential files. Undo unrelated changes. |
+| **Rabbit hole** | Climb back up to the level of the user's problem. Consider a workaround instead of a deep fix. |
 
-### Passo 4 — Limite
-- Após 3 tentativas falhadas → mude de abordagem completamente
-- Após 2 abordagens falhadas → reporte ao usuário com diagnóstico:
+### Step 4 — Limit
+- After 3 failed attempts → change approach completely
+- After 2 failed approaches → report to the user with a diagnosis:
   ```
   ## 🔄 Loop Recovery Report
-  **Objetivo**: [o que estou tentando fazer]
-  **Tentativas**: [lista numerada do que tentei]
-  **Padrão detectado**: [oscilação/retry/drift/rabbit hole]
-  **Diagnóstico**: [por que está falhando]
-  **Sugestão**: [abordagem diferente ou decisão que precisa do usuário]
+  **Goal**: [what I am trying to do]
+  **Attempts**: [numbered list of what I tried]
+  **Pattern detected**: [oscillation/retry/drift/rabbit hole]
+  **Diagnosis**: [why it is failing]
+  **Suggestion**: [a different approach, or a decision that needs the user]
   ```
 
-### Passo 5 — Verificar resolução
-Após o pivot, confirme que o novo caminho está fazendo progresso real:
-- O output mudou? (não apenas o input)
-- O erro é diferente? (progresso, mesmo que parcial)
-- Está mais perto do objetivo? (menos arquivos com problema, testes passando)
+### Step 5 — Verify the resolution
+After the pivot, confirm the new path is making real progress:
+- Did the output change? (not just the input)
+- Is the error different? (progress, even if partial)
+- Are you closer to the goal? (fewer files with problems, tests passing)
 
-Se não → volte ao Passo 3 com outra estratégia de pivot.
+If not → go back to Step 3 with another pivot strategy.
 
-## Regra absoluta
-NUNCA tente a mesma abordagem mais de 3 vezes. Se falhou 3x, está errada — mude.
+## Absolute rule
+NEVER try the same approach more than 3 times. If it failed 3x, it is wrong — change it.

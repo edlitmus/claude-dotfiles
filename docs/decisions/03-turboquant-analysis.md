@@ -1,62 +1,62 @@
-# Análise Técnica: TurboQuant
+# Technical Analysis: TurboQuant
 
-**Data:** 2026-04-10
-**Status:** Decidido — usar apenas para sync/export, não como armazenamento primário
-**Pacotes testados:** `turboquant-py` v0.1.0, `turboquant-vectors` v0.3.0
+**Date:** 2026-04-10
+**Status:** Decided — use it only for sync/export, not as primary storage
+**Packages tested:** `turboquant-py` v0.1.0, `turboquant-vectors` v0.3.0
 
 ---
 
-## Pacotes testados
+## Packages tested
 
 ### turboquant-py v0.1.0
 
-Instala sem erro, mas falha ao importar:
+Installs without error, but fails on import:
 
 ```
 ModuleNotFoundError: No module named 'turboquant_py'
 ```
 
-O pacote publica sob o nome `turboquant-py` no PyPI mas o módulo interno usa um nome diferente. Não há documentação clara sobre o nome correto de importação. **Descartado.**
+The package is published under the name `turboquant-py` on PyPI, but its internal module uses a different name. There is no clear documentation on the correct import name. **Discarded.**
 
 ### turboquant-vectors v0.3.0
 
-Instala e importa corretamente. Este foi o pacote usado nos benchmarks abaixo.
+Installs and imports correctly. This is the package used in the benchmarks below.
 
 ---
 
 ## Benchmark: turboquant-vectors
 
-Configuração do teste: 100 vetores, 1536 dimensões, quantização 4-bit.
+Test configuration: 100 vectors, 1536 dimensions, 4-bit quantization.
 
-### Resultados de memória e compressão
+### Memory and compression results
 
-| Métrica | Valor | Observação |
+| Metric | Value | Note |
 |---|---|---|
-| `compression_ratio` | 0.065 | Significa 6.5% do tamanho original em forma packed |
-| `original_bytes` | 614.400 (600 KB) | 100 × 1536 dims × 4 bytes (float32) |
-| `packed_memory_bytes` | 77.200 (75.4 KB) | ~8x de compressão em forma packed |
-| `memory_bytes` (in-process) | 9.514.448 (~9 MB) | Maior porque inclui codebook, rotação e índices |
-| Serialização manual (índices + codebook + normas) | 154.064 bytes (~150 KB) | ~4x de compressão vs original |
+| `compression_ratio` | 0.065 | Means 6.5% of the original size in packed form |
+| `original_bytes` | 614,400 (600 KB) | 100 × 1536 dims × 4 bytes (float32) |
+| `packed_memory_bytes` | 77,200 (75.4 KB) | ~8x compression in packed form |
+| `memory_bytes` (in-process) | 9,514,448 (~9 MB) | Larger because it includes the codebook, rotation, and indices |
+| Manual serialization (indices + codebook + norms) | 154,064 bytes (~150 KB) | ~4x compression vs the original |
 
-A diferença entre `packed_memory_bytes` (~75 KB) e `memory_bytes` (~9 MB) ocorre porque o objeto em memória carrega estruturas auxiliares: codebook float32[16], matriz de rotação e normas por vetor. O tamanho packed representa apenas os índices uint8 comprimidos.
+The gap between `packed_memory_bytes` (~75 KB) and `memory_bytes` (~9 MB) exists because the in-memory object carries auxiliary structures: a float32[16] codebook, a rotation matrix, and per-vector norms. The packed size represents only the compressed uint8 indices.
 
-### Resultados de velocidade
+### Speed results
 
-| Operação | Tempo (100 vetores, 1536 dims) |
+| Operation | Time (100 vectors, 1536 dims) |
 |---|---|
-| Compressão (fit + transform) | ~5.500 ms |
-| Busca (query) | ~3.630 ms |
+| Compression (fit + transform) | ~5,500 ms |
+| Search (query) | ~3,630 ms |
 
-Esses tempos são **lentos** para 100 vetores. Para contexto, ChromaDB completa busca em coleções similares em dezenas de milissegundos. A lentidão indica overhead de Python puro ou ausência de otimização SIMD — não investigado a fundo pois o caso de uso mudou.
+These times are **slow** for 100 vectors. For context, ChromaDB completes a search over similar collections in tens of milliseconds. The slowness suggests pure-Python overhead or the absence of SIMD optimization — not investigated further because the use case changed.
 
-### Problema no Windows: `.save()` quebrado
+### Problem on Windows: `.save()` is broken
 
 ```python
 index.save("./tq_test.bin")
-# Executa sem erro, mas o arquivo não é criado
+# Runs without error, but the file is not created
 ```
 
-O método `.save()` silencia o erro de escrita no Windows. Não há exception, não há arquivo. Isso inviabiliza o uso do `.save()` nativo para persistência. A serialização manual funcionou:
+The `.save()` method silences the write error on Windows. There is no exception and no file. That rules out the native `.save()` for persistence. Manual serialization worked:
 
 ```python
 np.savez("tq_test.bin", 
@@ -66,65 +66,65 @@ np.savez("tq_test.bin",
 )
 ```
 
-O arquivo `tq_test.bin.npz` presente na raiz do repositório é o artefato deste teste.
+The `tq_test.bin.npz` file at the repository root is the artifact from this test.
 
 ---
 
-## Incompatibilidade de dimensões com nosso stack
+## Dimension mismatch with our stack
 
-Nosso stack de memória usa ChromaDB com o modelo `all-MiniLM-L6-v2` — **384 dimensões**. O benchmark do TurboQuant foi feito com 1536 dims (tamanho típico de embeddings OpenAI `text-embedding-ada-002`).
+Our memory stack uses ChromaDB with the `all-MiniLM-L6-v2` model — **384 dimensions**. The TurboQuant benchmark was run with 1536 dims (the typical size of OpenAI `text-embedding-ada-002` embeddings).
 
-TurboQuant funciona com qualquer dimensão, mas a relação custo/benefício muda. Com 384 dims, o overhead de compressão é menor em termos absolutos, e a velocidade do ChromaDB já é adequada para nossas coleções esperadas (< 100k vetores).
+TurboQuant works with any dimension, but the cost/benefit changes. At 384 dims the compression overhead is smaller in absolute terms, and ChromaDB's speed is already adequate for our expected collections (< 100k vectors).
 
 ---
 
-## Decisão de uso
+## Usage decision
 
-**ChromaDB é o primário.** Cuida de armazenamento, busca e persistência. Não há razão para adicionar uma camada de compressão no caminho crítico de busca.
+**ChromaDB is primary.** It handles storage, search, and persistence. There is no reason to add a compression layer on the critical search path.
 
-**TurboQuant-vectors como camada opcional de sync/export.** O único caso de uso justificável é comprimir snapshots do índice ChromaDB para transferência entre máquinas (ex: sincronização via git de snapshots comprimidos). Nesse cenário:
+**turboquant-vectors as an optional sync/export layer.** The only justifiable use case is compressing ChromaDB index snapshots for transfer between machines (e.g. syncing compressed snapshots via git). In that scenario:
 
-1. Exportar vetores do ChromaDB → serializar com TurboQuant → commitar snapshot `.npz`
-2. Em nova máquina → carregar `.npz` → reconstruir coleção ChromaDB
+1. Export vectors from ChromaDB → serialize with TurboQuant → commit the `.npz` snapshot
+2. On a new machine → load the `.npz` → rebuild the ChromaDB collection
 
-Isso reduz o tamanho do snapshot de ~4x a ~8x, dependendo do método de serialização usado.
+This shrinks the snapshot by ~4x to ~8x, depending on the serialization method used.
 
-### Fluxo de fallback completo
+### Complete fallback flow
 
 ```
-ChromaDB (primário)
-  ↓ falha de instalação ou runtime
-numpy cosine similarity + .npz manual (fallback)
-  ↓ precisa de sync entre máquinas
-turboquant-vectors comprimido em .npz (opcional, para export)
+ChromaDB (primary)
+  ↓ installation or runtime failure
+numpy cosine similarity + manual .npz (fallback)
+  ↓ needs syncing between machines
+turboquant-vectors compressed into .npz (optional, for export)
 ```
 
 ---
 
-## Estrutura interna do índice TurboQuant
+## Internal structure of the TurboQuant index
 
-Para referência futura ao implementar a serialização manual:
+For future reference when implementing manual serialization:
 
-| Atributo | Tipo | Descrição |
+| Attribute | Type | Description |
 |---|---|---|
-| `indices` | `uint8[N, M]` | Índices quantizados dos vetores |
-| `codebook` | `float32[16]` | Centroides do codebook (PQ) |
-| `norms` | `float32[N]` | Norma L2 de cada vetor original |
-| `rotation` | `float32[D, D]` | Matriz de rotação aleatória pré-aplicada |
+| `indices` | `uint8[N, M]` | Quantized indices of the vectors |
+| `codebook` | `float32[16]` | Codebook centroids (PQ) |
+| `norms` | `float32[N]` | L2 norm of each original vector |
+| `rotation` | `float32[D, D]` | Pre-applied random rotation matrix |
 
-A reconstrução aproximada de um vetor original passa por: desquantizar via codebook → aplicar rotação inversa → normalizar via norma.
-
----
-
-## Artefato de teste
-
-O arquivo `/tq_test.bin.npz` na raiz do repositório é o output do benchmark manual. Contém índices, codebook e normas dos 100 vetores de teste (1536 dims, 4-bit). Pode ser usado para validar a serialização em outros ambientes.
+Approximately reconstructing an original vector goes through: dequantize via the codebook → apply the inverse rotation → rescale by the norm.
 
 ---
 
-## Referências
+## Test artifact
+
+The `/tq_test.bin.npz` file at the repository root is the output of the manual benchmark. It contains the indices, codebook, and norms of the 100 test vectors (1536 dims, 4-bit). It can be used to validate serialization in other environments.
+
+---
+
+## References
 
 - `turboquant-vectors` v0.3.0: https://pypi.org/project/turboquant-vectors/
-- `turboquant-py` v0.1.0: descartado (import quebrado)
+- `turboquant-py` v0.1.0: discarded (broken import)
 - ChromaDB: https://docs.trychroma.com/
 - all-MiniLM-L6-v2: 384 dims, Apache 2.0, via sentence-transformers

@@ -1,64 +1,64 @@
 ---
 name: boot
-description: Inicialização de sessão — verifica ambiente, carrega memória e contexto.
+description: Session initialization — checks the environment, loads memory and context.
 user-invocable: true
 allowed-tools: Read, Write, Grep, Glob, Bash
 model: sonnet
 effort: medium
 ---
 
-# Boot — Inicialização de Sessão
+# Boot — Session Initialization
 
-Execute a sequência de boot para garantir que o ambiente está configurado.
+Run the boot sequence to make sure the environment is configured.
 
-## Checklist (7 passos)
+## Checklist (7 steps)
 
-### 1. Consultar memória semântica
-Antes de qualquer outra inicialização, busque contexto acumulado do projeto:
+### 1. Query semantic memory
+Before any other initialization, look up accumulated project context:
 ```bash
 python3 ~/dotfiles/scripts/memory_bridge.py query \
-    --text "$(basename $PWD) contexto projeto stack decisoes" \
+    --text "$(basename $PWD) project context stack decisions" \
     --top-k 8 \
     --project "$(basename $PWD)" \
     --format markdown
 ```
-- Se houver resultados: incorpore como contexto antes de prosseguir
-- Se não houver: prossiga normalmente (projeto novo ou sem histórico)
+- If there are results: incorporate them as context before proceeding
+- If there are none: proceed normally (new project or no history)
 
-### 2. Verificar .gitignore
-Garantir que `.memory/` está no `.gitignore`:
+### 2. Check .gitignore
+Make sure `.memory/` is in `.gitignore`:
 ```bash
 grep -q '.memory/' .gitignore 2>/dev/null || echo '.memory/' >> .gitignore
 ```
 
-### 3. Criar estrutura de memória
+### 3. Create the memory structure
 ```bash
 mkdir -p .memory/session .memory/todo .memory/plan
 ```
 
-### 4. Carregar memória long-term
-- Ler `.memory/long-term.md` se existir
-- Aplicar preferências e feedback ao comportamento
-- Se não existir, criar com template vazio (skill `/agent-memory`)
+### 4. Load long-term memory
+- Read `.memory/long-term.md` if it exists
+- Apply preferences and feedback to your behavior
+- If it does not exist, create it with an empty template (skill `/agent-memory`)
 
-### 5. Verificar sessões pausadas
-- Listar `.memory/session/*.md` com status `paused` ou `active`
-- Se encontrar: "Sessão anterior detectada: [slug]. Retomar ou iniciar nova?"
-- Se não encontrar: prosseguir
+### 5. Check for paused sessions
+- List `.memory/session/*.md` with status `paused` or `active`
+- If found: "Previous session detected: [slug]. Resume or start a new one?"
+- If not found: proceed
 
-### 6. Indexar contexto do projeto
-- Verificar arquivos `.context.md` no projeto
-- Se ausentes: sugerir `/contextualize`
-- Detectar stack (package.json, go.mod, pyproject.toml, etc.)
+### 6. Index the project context
+- Check for `.context.md` files in the project
+- If absent: suggest `/contextualize`
+- Detect the stack (package.json, go.mod, pyproject.toml, etc.)
 
-### 7. Saudação
-Reportar estado ao usuário:
-- Memória: carregada / vazia / sessão pausada encontrada
-- Stack: detectado / não identificado
-- Solicitar instruções
+### 7. Greeting
+Report the state to the user:
+- Memory: loaded / empty / paused session found
+- Stack: detected / not identified
+- Ask for instructions
 
-## Quando usar
-- Início de sessão em projeto novo
-- Após longo período sem trabalhar no projeto
-- Quando o contexto parece degradado
-- Manualmente: `/boot`
+## When to use
+- Starting a session on a new project
+- After a long period away from the project
+- When the context looks degraded
+- Manually: `/boot`

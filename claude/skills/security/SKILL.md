@@ -1,7 +1,7 @@
 ---
 name: security-audit
-description: Auditoria de segurança do código — analisa vulnerabilidades, dependências e configurações.
-argument-hint: "[arquivo, diretório ou 'full' para projeto inteiro]"
+description: Code security audit — analyzes vulnerabilities, dependencies, and configuration.
+argument-hint: "[file, directory, or 'full' for the whole project]"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Agent
 model: opus
@@ -12,67 +12,67 @@ agent: security
 
 # Security Audit
 
-Execute uma auditoria de segurança em: `$ARGUMENTS`
+Run a security audit on: `$ARGUMENTS`
 
-Se o argumento for "full" ou vazio, audite o projeto inteiro.
+If the argument is "full" or empty, audit the whole project.
 
-## Escopo da auditoria
+## Audit scope
 
-### 1. Secrets & Credenciais
+### 1. Secrets & Credentials
 ```bash
-# Procurar padrões suspeitos
+# Look for suspicious patterns
 grep -rn "password\|secret\|api_key\|token\|private_key" --include="*.py" --include="*.ts" --include="*.js" --include="*.go" --include="*.env" .
 ```
-- Verificar .gitignore para .env e arquivos de credenciais
-- Verificar se há secrets hardcoded
+- Check .gitignore for .env and credential files
+- Check for hardcoded secrets
 
-### 2. Vulnerabilidades de código
-- SQL injection (queries concatenadas)
-- XSS (output não-escaped)
-- Command injection (shell commands com input de usuário)
-- Path traversal (file paths com input de usuário)
-- SSRF (URLs construídas com input de usuário)
+### 2. Code vulnerabilities
+- SQL injection (concatenated queries)
+- XSS (unescaped output)
+- Command injection (shell commands with user input)
+- Path traversal (file paths with user input)
+- SSRF (URLs built from user input)
 - Insecure deserialization
 
-### 3. Dependências
+### 3. Dependencies
 ```bash
 # Python
-pip audit 2>/dev/null || echo "pip-audit não instalado"
+pip audit 2>/dev/null || echo "pip-audit not installed"
 # Node
-npm audit 2>/dev/null || echo "npm não encontrado"
+npm audit 2>/dev/null || echo "npm not found"
 # Go
-govulncheck ./... 2>/dev/null || echo "govulncheck não instalado"
+govulncheck ./... 2>/dev/null || echo "govulncheck not installed"
 ```
 
-### 4. Configuração
-- CORS configurado corretamente?
-- HTTPS forçado?
-- Headers de segurança (CSP, HSTS, X-Frame-Options)?
+### 4. Configuration
+- Is CORS configured correctly?
+- Is HTTPS enforced?
+- Security headers (CSP, HSTS, X-Frame-Options)?
 - Rate limiting?
-- Logging sem PII?
+- Logging free of PII?
 
-## Formato do relatório
+## Report format
 ```
-# 🔒 Relatório de Segurança
-Data: [data]
-Escopo: [arquivos analisados]
+# 🔒 Security Report
+Date: [date]
+Scope: [files analyzed]
 
-## Sumário
-- Crítico: X
-- Alto: X
-- Médio: X
-- Baixo: X
+## Summary
+- Critical: X
+- High: X
+- Medium: X
+- Low: X
 - Info: X
 
-## Vulnerabilidades
-### 🔴 [CRÍTICO] Título
-**Arquivo**: path:linha
-**Impacto**: ...
-**Correção**: ...
+## Vulnerabilities
+### 🔴 [CRITICAL] Title
+**File**: path:line
+**Impact**: ...
+**Fix**: ...
 
-[repetir para cada finding]
+[repeat for each finding]
 
-## Recomendações gerais
+## General recommendations
 1. ...
 2. ...
 ```

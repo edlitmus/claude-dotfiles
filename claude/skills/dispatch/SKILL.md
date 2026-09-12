@@ -1,7 +1,7 @@
 ---
 name: dispatch
-description: Protocolo de orquestração para despachar sub-agentes com contexto completo.
-argument-hint: "[tarefa a ser despachada]"
+description: Orchestration protocol for dispatching sub-agents with complete context.
+argument-hint: "[task to dispatch]"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Agent
 model: sonnet
@@ -9,67 +9,67 @@ effort: high
 context: fork
 ---
 
-# Dispatch — Orquestração de Sub-Agentes
+# Dispatch — Sub-Agent Orchestration
 
-Despache a tarefa para o agente adequado: `$ARGUMENTS`
+Dispatch the task to the right agent: `$ARGUMENTS`
 
-## Quando despachar (obrigatório)
+## When to dispatch (mandatory)
 
-### Auto-triggers semânticos
-Se o usuário usar estas frases, o dispatch é OBRIGATÓRIO:
+### Semantic auto-triggers
+If the user uses these phrases, dispatching is MANDATORY:
 
-| Frase do usuário | Agente | Justificativa |
+| User phrase | Agent | Rationale |
 |---|---|---|
-| "find where", "search for", "locate" | Explore | Busca requer varredura ampla |
-| "fix issues", "fix remaining" | Backend/Frontend | Fix requer foco em implementação |
-| "how does X work", "explain the flow" | Explore | Compreensão requer análise |
-| "refactor", "update across", "rename" | Backend/Frontend | Refator toca múltiplos arquivos |
-| "review this", "check quality" | /review ou /review-deep | Review é skill dedicada |
-| "design architecture", "propose solution" | Architect | Decisão arquitetural |
-| "check security", "audit" | Security | Análise de segurança |
-| "optimize query", "fix migration" | Database | Especialista em dados |
-| "deploy", "configure CI", "docker" | DevOps | Infraestrutura |
+| "find where", "search for", "locate" | Explore | Searching requires a broad sweep |
+| "fix issues", "fix remaining" | Backend/Frontend | A fix requires implementation focus |
+| "how does X work", "explain the flow" | Explore | Understanding requires analysis |
+| "refactor", "update across", "rename" | Backend/Frontend | Refactors touch multiple files |
+| "review this", "check quality" | /review or /review-deep | Review is a dedicated skill |
+| "design architecture", "propose solution" | Architect | Architectural decision |
+| "check security", "audit" | Security | Security analysis |
+| "optimize query", "fix migration" | Database | Data specialist |
+| "deploy", "configure CI", "docker" | DevOps | Infrastructure |
 
-### Regra dos 3 arquivos
-Se a tarefa envolve >3 arquivos → dispatch é OBRIGATÓRIO.
+### The 3-file rule
+If the task involves >3 files → dispatching is MANDATORY.
 
-## Protocolo de dispatch (5 passos)
+## Dispatch protocol (5 steps)
 
-### Passo 1 — Avaliar a tarefa
-- Qual o objetivo concreto?
-- Quantos arquivos serão afetados?
-- Qual domínio de conhecimento é necessário?
+### Step 1 — Assess the task
+- What is the concrete goal?
+- How many files will be affected?
+- Which knowledge domain is required?
 
-### Passo 2 — Selecionar agente
-- Consulte a tabela de auto-triggers
-- Em caso de dúvida entre 2 agentes, escolha o mais específico
-- Se cruza domínios, despache múltiplos em paralelo
+### Step 2 — Select the agent
+- Consult the auto-trigger table
+- When torn between 2 agents, pick the more specific one
+- If it spans domains, dispatch multiple agents in parallel
 
-### Passo 3 — Montar o prompt
-O prompt DEVE conter:
-1. **Contexto**: o que o projeto faz, stack, estado atual
-2. **Tarefa**: o que precisa ser feito (específico, não vago)
-3. **Escopo**: quais arquivos/diretórios são relevantes
-4. **Critérios de aceite**: como saber que está feito
-5. **Restrições**: o que NÃO fazer (se aplicável)
+### Step 3 — Assemble the prompt
+The prompt MUST contain:
+1. **Context**: what the project does, stack, current state
+2. **Task**: what needs to be done (specific, not vague)
+3. **Scope**: which files/directories are relevant
+4. **Acceptance criteria**: how to know it is done
+5. **Constraints**: what NOT to do (if applicable)
 
-### Passo 4 — Despachar
-- Use a ferramenta `Agent` com `subagent_type` adequado
-- Para tarefas independentes, despache em paralelo
-- Nunca despache sem critérios de aceite
+### Step 4 — Dispatch
+- Use the `Agent` tool with the right `subagent_type`
+- For independent tasks, dispatch in parallel
+- Never dispatch without acceptance criteria
 
-### Passo 5 — Consolidar
-- Revise o output do sub-agente
-- Verifique se critérios de aceite foram atendidos
-- Se não atendidos, re-despache com feedback específico
-- Apresente resultado consolidado ao usuário
+### Step 5 — Consolidate
+- Review the sub-agent's output
+- Check whether the acceptance criteria were met
+- If not met, re-dispatch with specific feedback
+- Present a consolidated result to the user
 
-## Anti-padrões (PROIBIDO)
+## Anti-patterns (FORBIDDEN)
 
-| Anti-padrão | Correto |
+| Anti-pattern | Correct |
 |---|---|
-| Despachar sem contexto | Incluir contexto completo no prompt |
-| "Faça o que for preciso" | Definir tarefa e critérios específicos |
-| Fazer direto o que deveria ser despachado | Regra dos 3 arquivos é inviolável |
-| Despachar para agente errado | Consultar tabela de domínios |
-| Ignorar output do sub-agente | Sempre revisar e consolidar |
+| Dispatching without context | Include complete context in the prompt |
+| "Do whatever is needed" | Define a specific task and criteria |
+| Doing directly what should be dispatched | The 3-file rule is inviolable |
+| Dispatching to the wrong agent | Consult the domain table |
+| Ignoring the sub-agent's output | Always review and consolidate |

@@ -1,4 +1,4 @@
-# Arquivos de teste e temporários
+# Test and temporary files
 *.bin.npz
 *.zip
 HANDOFF.md

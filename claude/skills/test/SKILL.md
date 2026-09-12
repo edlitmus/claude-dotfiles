@@ -1,7 +1,7 @@
 ---
 name: test
-description: Gera testes para código existente ou roda a suite de testes do projeto.
-argument-hint: "[arquivo para gerar testes | 'run' para rodar suite]"
+description: Generates tests for existing code, or runs the project's test suite.
+argument-hint: "[file to generate tests for | 'run' to run the suite]"
 user-invocable: true
 allowed-tools: Read, Edit, Write, Grep, Glob, Bash, Agent
 model: sonnet
@@ -10,44 +10,44 @@ effort: high
 
 # Test
 
-## Se o argumento for "run" ou vazio
-Detecte e rode a suite de testes do projeto:
+## If the argument is "run" or empty
+Detect and run the project's test suite:
 ```bash
-# Detectar framework
+# Detect the framework
 [ -f pytest.ini ] || [ -f pyproject.toml ] && pytest -v
 [ -f package.json ] && npm test
 [ -f go.mod ] && go test -v ./...
 ```
 
-Mostre resultado formatado:
+Show the formatted result:
 ```
-## Resultado dos testes
+## Test results
 - Total:   X
 - Passed:  X ✅
 - Failed:  X ❌
 - Skipped: X ⏭️
-- Tempo:   Xs
+- Time:    Xs
 ```
 
-## Se um arquivo for fornecido
-Gere testes para: `$ARGUMENTS`
+## If a file is provided
+Generate tests for: `$ARGUMENTS`
 
-### Processo
-1. Leia o arquivo e entenda as funções/classes públicas.
-2. Identifique o framework de teste do projeto (pytest, jest, vitest, go test).
-3. Gere testes cobrindo:
-   - **Happy path**: fluxo principal funcionando
-   - **Edge cases**: null, vazio, limites, tipos errados
-   - **Erros**: exceções esperadas, error handling
-4. Use o padrão AAA (Arrange → Act → Assert).
-5. Nomes descritivos: `test_should_return_404_when_user_not_found`.
-6. Coloque o arquivo de teste no local correto do projeto:
-   - Python: `tests/test_<nome>.py` ou ao lado `<nome>_test.py`
-   - JS/TS: `__tests__/<nome>.test.ts` ou `<nome>.spec.ts`
-   - Go: `<nome>_test.go` no mesmo pacote
+### Process
+1. Read the file and understand the public functions/classes.
+2. Identify the project's test framework (pytest, jest, vitest, go test).
+3. Generate tests covering:
+   - **Happy path**: the main flow working
+   - **Edge cases**: null, empty, boundaries, wrong types
+   - **Errors**: expected exceptions, error handling
+4. Use the AAA pattern (Arrange → Act → Assert).
+5. Descriptive names: `test_should_return_404_when_user_not_found`.
+6. Put the test file in the project's correct location:
+   - Python: `tests/test_<name>.py` or alongside as `<name>_test.py`
+   - JS/TS: `__tests__/<name>.test.ts` or `<name>.spec.ts`
+   - Go: `<name>_test.go` in the same package
 
-### Após gerar
-Rode os testes para validar que passam:
+### After generating
+Run the tests to validate that they pass:
 ```bash
-# Rode apenas os testes gerados
+# Run only the generated tests
 ```

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Bridge entre ruah e memory_bridge para sessões paralelas
-# Uso: bash scripts/ruah_bridge.sh [start|complete] TASK_NAME [args...]
+# Bridge between ruah and memory_bridge for parallel sessions
+# Usage: bash scripts/ruah_bridge.sh [start|complete] TASK_NAME [args...]
 
 set -euo pipefail
 
@@ -9,7 +9,7 @@ COMMAND="${1:-}"
 TASK_NAME="${2:-}"
 
 if [ -z "$COMMAND" ] || [ -z "$TASK_NAME" ]; then
-    echo "Uso: ruah_bridge.sh [start|complete] TASK_NAME [args...]"
+    echo "Usage: ruah_bridge.sh [start|complete] TASK_NAME [args...]"
     exit 1
 fi
 
@@ -17,7 +17,7 @@ shift 2
 
 case "$COMMAND" in
     start)
-        echo "→ Consultando memória para task: $TASK_NAME" >&2
+        echo "→ Querying memory for task: $TASK_NAME" >&2
 
         if [ -f "$MEMORY_BRIDGE" ]; then
             CONTEXT=$(python3 "$MEMORY_BRIDGE" query \
@@ -26,7 +26,7 @@ case "$COMMAND" in
                 --format plain 2>/dev/null || true)
         fi
 
-        # Se ruah está disponível e a task tem worktree, injeta contexto
+        # If ruah is available and the task has a worktree, inject the context
         if command -v ruah &>/dev/null; then
             WORKTREE=$(ruah task list --json 2>/dev/null | \
                 python3 -c "
@@ -42,9 +42,9 @@ except: pass
 
             if [ -n "${WORKTREE:-}" ] && [ -d "$WORKTREE" ] && [ -n "${CONTEXT:-}" ]; then
                 echo "" >> "$WORKTREE/CLAUDE.md" 2>/dev/null || true
-                echo "## Contexto injetado (memoria)" >> "$WORKTREE/CLAUDE.md" 2>/dev/null || true
+                echo "## Injected context (memory)" >> "$WORKTREE/CLAUDE.md" 2>/dev/null || true
                 echo "$CONTEXT" >> "$WORKTREE/CLAUDE.md" 2>/dev/null || true
-                echo "✓ Contexto injetado no worktree $WORKTREE" >&2
+                echo "✓ Context injected into worktree $WORKTREE" >&2
             fi
         fi
 
@@ -54,7 +54,7 @@ except: pass
         ;;
 
     complete)
-        echo "→ Persistindo task na memória: $TASK_NAME" >&2
+        echo "→ Persisting task to memory: $TASK_NAME" >&2
 
         ARTIFACTS=""
         if command -v ruah &>/dev/null; then
@@ -72,12 +72,12 @@ except: pass
         fi
 
         if [ -f "$MEMORY_BRIDGE" ]; then
-            SUMMARY="Task ruah '${TASK_NAME}' completada."
+            SUMMARY="ruah task '${TASK_NAME}' completed."
             if [ -n "$ARTIFACTS" ]; then
-                SUMMARY="$SUMMARY Detalhes: $ARTIFACTS"
+                SUMMARY="$SUMMARY Details: $ARTIFACTS"
             fi
             if [ -n "$*" ]; then
-                SUMMARY="$SUMMARY Notas: $*"
+                SUMMARY="$SUMMARY Notes: $*"
             fi
 
             python3 "$MEMORY_BRIDGE" store \
@@ -85,13 +85,13 @@ except: pass
                 --tags "ruah,task,$TASK_NAME" \
                 --project "$(basename "$PWD")" 2>/dev/null || true
 
-            echo "✓ Task persistida na memória" >&2
+            echo "✓ Task persisted to memory" >&2
         fi
         ;;
 
     *)
-        echo "Comando desconhecido: $COMMAND"
-        echo "Uso: ruah_bridge.sh [start|complete] TASK_NAME [args...]"
+        echo "Unknown command: $COMMAND"
+        echo "Usage: ruah_bridge.sh [start|complete] TASK_NAME [args...]"
         exit 1
         ;;
 esac

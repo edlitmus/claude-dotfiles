@@ -1,6 +1,6 @@
 ---
 name: task-tracking
-description: Persiste tarefas em arquivo para sobreviver entre sessões.
+description: Persists tasks to a file so they survive across sessions.
 argument-hint: "[create|update|list|close]"
 user-invocable: true
 allowed-tools: Read, Write, Grep, Glob, Bash
@@ -8,65 +8,65 @@ model: sonnet
 effort: medium
 ---
 
-# Task Tracking — Todos Persistentes
+# Task Tracking — Persistent Todos
 
-Gerencie tarefas persistentes: `$ARGUMENTS`
+Manage persistent tasks: `$ARGUMENTS`
 
-## Por que usar (vs TodoWrite)
-O TodoWrite do Claude Code é **volátil** — morre com a sessão. Para tarefas que duram dias/semanas, use este sistema baseado em arquivos.
+## Why use this (vs TodoWrite)
+Claude Code's TodoWrite is **volatile** — it dies with the session. For tasks lasting days/weeks, use this file-based system.
 
-## Estrutura
+## Structure
 
-### Diretório
+### Directory
 `.memory/todo/`
 
-### Formato do arquivo
+### File format
 `.memory/todo/YYYY-MM-DD-<prefix>-<slug>.md`
 
-Prefixos: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
+Prefixes: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
 
 ### Template
 ```markdown
-# [prefix]: [descrição curta]
+# [prefix]: [short description]
 **Status**: active | paused | done | cancelled
-**Criado**: YYYY-MM-DD
-**Atualizado**: YYYY-MM-DD
+**Created**: YYYY-MM-DD
+**Updated**: YYYY-MM-DD
 
-## Tarefas
-- [x] Tarefa completa
-- [ ] Tarefa pendente
+## Tasks
+- [x] Completed task
+- [ ] Pending task
 
-## Log de Eventos
-- [YYYY-MM-DD HH:MM] Criado — contexto inicial
-- [YYYY-MM-DD HH:MM] Decisão — escolheu X porque Y
-- [YYYY-MM-DD HH:MM] Bloqueio — esperando Z
-- [YYYY-MM-DD HH:MM] Progresso — completou tarefas 1-3
+## Event Log
+- [YYYY-MM-DD HH:MM] Created — initial context
+- [YYYY-MM-DD HH:MM] Decision — chose X because Y
+- [YYYY-MM-DD HH:MM] Blocked — waiting on Z
+- [YYYY-MM-DD HH:MM] Progress — completed tasks 1-3
 ```
 
 ## Workflow
 
-### Criar (`create`)
-1. Determinar prefixo e slug descritivo (kebab-case)
-2. Criar arquivo com template
-3. Registrar evento de criação
+### Create (`create`)
+1. Determine the prefix and a descriptive slug (kebab-case)
+2. Create the file from the template
+3. Log the creation event
 
-### Atualizar (`update`)
-1. Localizar arquivo em `.memory/todo/`
-2. Marcar checkboxes completadas
-3. Adicionar entrada no log com timestamp
+### Update (`update`)
+1. Locate the file in `.memory/todo/`
+2. Tick the completed checkboxes
+3. Add a log entry with a timestamp
 
-### Listar (`list`)
-1. Listar arquivos em `.memory/todo/`
-2. Filtrar por status (active por padrão)
-3. Mostrar: nome, status, progresso (X/Y tarefas)
+### List (`list`)
+1. List the files in `.memory/todo/`
+2. Filter by status (active by default)
+3. Show: name, status, progress (X/Y tasks)
 
-### Fechar (`close`)
-1. Marcar todas as tarefas como completas ou canceladas
-2. Mudar status para `done` ou `cancelled`
-3. Registrar evento de fechamento
+### Close (`close`)
+1. Mark every task as completed or cancelled
+2. Change the status to `done` or `cancelled`
+3. Log the closing event
 
-## Regras
-- Atualizar status IMEDIATAMENTE (não batchear)
-- Preservar arquivos com items incompletos
-- Cada ação registrada no log com timestamp
-- Manter arquivo mesmo após done (histórico)
+## Rules
+- Update the status IMMEDIATELY (do not batch)
+- Preserve files with incomplete items
+- Log every action with a timestamp
+- Keep the file even after it is done (history)

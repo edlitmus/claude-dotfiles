@@ -1,7 +1,7 @@
 ---
 name: refactor
-description: Analisa e refatora código para melhorar qualidade, legibilidade e manutenibilidade sem mudar comportamento.
-argument-hint: "<arquivo ou diretório>"
+description: Analyzes and refactors code to improve quality, readability, and maintainability without changing behavior.
+argument-hint: "<file or directory>"
 user-invocable: true
 allowed-tools: Read, Edit, Write, Grep, Glob, Bash, Agent
 model: sonnet
@@ -10,47 +10,47 @@ effort: high
 
 # Refactor
 
-Refatore o código em `$ARGUMENTS` mantendo o comportamento idêntico.
+Refactor the code in `$ARGUMENTS` while keeping the behavior identical.
 
-## Processo
+## Process
 
-### 1. Análise
-Leia o código e identifique:
-- Duplicação de lógica
-- Funções muito longas (>30 linhas)
-- Complexidade ciclomática alta (muitos if/else aninhados)
-- Nomes pouco descritivos
-- Responsabilidades misturadas (god classes/functions)
-- Dead code (código não utilizado)
-- Dependências circulares
+### 1. Analysis
+Read the code and identify:
+- Duplicated logic
+- Very long functions (>30 lines)
+- High cyclomatic complexity (many nested if/else)
+- Poorly descriptive names
+- Mixed responsibilities (god classes/functions)
+- Dead code (unused code)
+- Circular dependencies
 
-### 2. Plano
-Antes de editar, apresente um plano:
+### 2. Plan
+Before editing, present a plan:
 ```
-## Plano de refatoração
-1. [O que] — [Por que]
-2. [O que] — [Por que]
+## Refactoring plan
+1. [What] — [Why]
+2. [What] — [Why]
 ...
-Arquivos afetados: X
-Risco: baixo/médio/alto
+Files affected: X
+Risk: low/medium/high
 ```
 
-Aguarde confirmação do usuário antes de prosseguir.
+Wait for the user's confirmation before proceeding.
 
-### 3. Execução
-- Uma mudança lógica por vez.
-- Mantenha o comportamento externo idêntico.
-- Se houver testes, rode após cada mudança significativa.
-- Nomeie extrações de forma descritiva.
+### 3. Execution
+- One logical change at a time.
+- Keep the external behavior identical.
+- If there are tests, run them after each significant change.
+- Name extractions descriptively.
 
-### 4. Validação
-- Rode os testes existentes.
-- Mostre diff resumido das mudanças.
+### 4. Validation
+- Run the existing tests.
+- Show a summarized diff of the changes.
 
-## Técnicas comuns
+## Common techniques
 - Extract Method/Function
-- Rename para clareza
-- Replace conditional com polimorfismo ou strategy
+- Rename for clarity
+- Replace conditional with polymorphism or strategy
 - Introduce Parameter Object
 - Remove dead code
-- Split module por responsabilidade
+- Split module by responsibility

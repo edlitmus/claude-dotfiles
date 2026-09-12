@@ -1,7 +1,7 @@
 ---
 name: tdd
-description: Test-Driven Development — ciclo RED-GREEN-REFACTOR estrito.
-argument-hint: "<funcionalidade a implementar>"
+description: Test-Driven Development — strict RED-GREEN-REFACTOR cycle.
+argument-hint: "<feature to implement>"
 user-invocable: true
 allowed-tools: Read, Edit, Write, Grep, Glob, Bash, Agent
 model: sonnet
@@ -11,71 +11,71 @@ context: fork
 
 # TDD — Test-Driven Development
 
-Implemente usando TDD estrito: `$ARGUMENTS`
+Implement using strict TDD: `$ARGUMENTS`
 
-## Ciclo RED → GREEN → REFACTOR
+## RED → GREEN → REFACTOR cycle
 
-### 🔴 RED — Escreva o teste PRIMEIRO
-1. Entenda o comportamento esperado
-2. Escreva UM teste que descreva esse comportamento
-3. **Execute o teste — DEVE FALHAR**
-4. Se o teste passar sem implementação → o teste está errado
+### 🔴 RED — Write the test FIRST
+1. Understand the expected behavior
+2. Write ONE test describing that behavior
+3. **Run the test — IT MUST FAIL**
+4. If the test passes without an implementation → the test is wrong
 
 ```bash
-# Verificar que o teste falha
-npm test -- --run [arquivo]  # ou pytest, go test
+# Check that the test fails
+npm test -- --run [file]  # or pytest, go test
 ```
 
-**REGRA**: Nunca prossiga para GREEN se o teste não falhou primeiro.
+**RULE**: Never move on to GREEN if the test did not fail first.
 
-### 🟢 GREEN — Implementação mínima
-1. Escreva o MÍNIMO de código para o teste passar
-2. Não otimize, não embeleze, não generalize
-3. **Execute o teste — DEVE PASSAR**
-4. Se não passar → corrija a implementação (não o teste)
+### 🟢 GREEN — Minimal implementation
+1. Write the MINIMUM code to make the test pass
+2. Do not optimize, do not embellish, do not generalize
+3. **Run the test — IT MUST PASS**
+4. If it does not pass → fix the implementation (not the test)
 
-**REGRA**: O fix mínimo. Se o teste espera `return 42`, retorne `42` literal.
+**RULE**: The minimal fix. If the test expects `return 42`, return a literal `42`.
 
-### 🔵 REFACTOR — Melhore sem mudar comportamento
-1. Todos os testes passando? Pode refatorar
-2. Melhore: naming, duplicação, estrutura
-3. **Execute os testes novamente — DEVEM continuar passando**
-4. Se algum teste quebrou → desfaça o refactor
+### 🔵 REFACTOR — Improve without changing behavior
+1. All tests passing? You may refactor
+2. Improve: naming, duplication, structure
+3. **Run the tests again — THEY MUST KEEP PASSING**
+4. If a test broke → undo the refactor
 
-**REGRA**: Refactor só com todos os testes verdes.
+**RULE**: Refactor only with all tests green.
 
-## Protocolo
+## Protocol
 
-### 1 teste por vez
-Não escreva 5 testes e depois implemente tudo. O ciclo é:
+### One test at a time
+Do not write 5 tests and then implement everything. The cycle is:
 ```
-1 teste RED → 1 implementação GREEN → refactor → próximo teste
+1 test RED → 1 implementation GREEN → refactor → next test
 ```
 
-### Naming de testes
-Descreva o comportamento, não o método:
+### Test naming
+Describe the behavior, not the method:
 - ✅ `should return 404 when user not found`
 - ✅ `should calculate total with discount applied`
 - ❌ `test_get_user`
 - ❌ `testCalculate`
 
-### Cobertura de cenários (ordem)
-1. **Happy path** — o caso mais comum
-2. **Edge cases** — null, vazio, limites, zero
-3. **Erros** — exceções, timeouts, inputs inválidos
-4. **Concorrência** — race conditions (se aplicável)
+### Scenario coverage (in order)
+1. **Happy path** — the most common case
+2. **Edge cases** — null, empty, boundaries, zero
+3. **Errors** — exceptions, timeouts, invalid inputs
+4. **Concurrency** — race conditions (if applicable)
 
-## Anti-padrões (PROIBIDO)
+## Anti-patterns (FORBIDDEN)
 
-| Anti-padrão | Correto |
+| Anti-pattern | Correct |
 |---|---|
-| Escrever implementação antes do teste | Teste primeiro, sempre |
-| Teste que nunca falha (tautologia) | Teste deve ser falsificável |
-| Múltiplos testes antes de implementar | 1 teste por vez |
-| Refatorar com testes falhando | Verde antes de refatorar |
-| Testar implementação interna | Testar comportamento observável |
+| Writing the implementation before the test | Test first, always |
+| A test that never fails (tautology) | A test must be falsifiable |
+| Multiple tests before implementing | One test at a time |
+| Refactoring with failing tests | Green before refactoring |
+| Testing internal implementation | Test observable behavior |
 
-## Quando usar
-- Feature nova que precisa de cobertura garantida
-- Bug fix (escreva teste que reproduz o bug → fix → verde)
-- Lógica complexa onde edge cases importam
+## When to use
+- A new feature that needs guaranteed coverage
+- A bug fix (write a test reproducing the bug → fix → green)
+- Complex logic where edge cases matter

@@ -1,7 +1,7 @@
 ---
 name: review-deep
-description: Code review paralelo com múltiplos agentes especializados.
-argument-hint: "[arquivo ou diretório]"
+description: Parallel code review with multiple specialized agents.
+argument-hint: "[file or directory]"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Agent
 model: opus
@@ -9,82 +9,82 @@ effort: high
 context: fork
 ---
 
-# Review Deep — Code Review Paralelo Multi-Agente
+# Review Deep — Parallel Multi-Agent Code Review
 
-Review profundo com 4 revisores paralelos: `$ARGUMENTS`
+Deep review with 4 parallel reviewers: `$ARGUMENTS`
 
-## Escopo
+## Scope
 
-### Se argumento fornecido
-Revisar: `$ARGUMENTS`
+### If an argument is provided
+Review: `$ARGUMENTS`
 
-### Se nenhum argumento
+### If no argument
 ```bash
 git diff --name-only HEAD
 git diff --cached --name-only
 ```
 
-## Processo
+## Process
 
-### Fase 1 — Preparação
-1. Identificar arquivos a revisar
-2. Ler cada arquivo para entender contexto
-3. Montar briefing: arquivos, propósito, stack
+### Phase 1 — Preparation
+1. Identify the files to review
+2. Read each file to understand the context
+3. Assemble a briefing: files, purpose, stack
 
-### Fase 2 — Dispatch paralelo (4 agentes)
+### Phase 2 — Parallel dispatch (4 agents)
 
-Despachar TODOS em paralelo:
+Dispatch ALL of them in parallel:
 
-#### Revisor 1 — Code Quality (backend/frontend)
-- Correção lógica, edge cases, tipos
-- Legibilidade, naming, SRP, dead code
-- Padrões do projeto
+#### Reviewer 1 — Code Quality (backend/frontend)
+- Logical correctness, edge cases, types
+- Readability, naming, SRP, dead code
+- Project standards
 
-#### Revisor 2 — Security (security)
+#### Reviewer 2 — Security (security)
 - OWASP Top 10, input validation, injection
-- Secrets, auth, headers, deps vulneráveis
+- Secrets, auth, headers, vulnerable deps
 
-#### Revisor 3 — Test Quality (backend/frontend)
-- Cobertura: happy path + edge cases
-- Nomes descritivos, AAA, mocks vs integração
+#### Reviewer 3 — Test Quality (backend/frontend)
+- Coverage: happy path + edge cases
+- Descriptive names, AAA, mocks vs integration
 
-#### Revisor 4 — Consequences (architect)
-- Impacto em dependentes
-- Breaking changes não documentados
-- Efeitos cascata, compatibilidade
+#### Reviewer 4 — Consequences (architect)
+- Impact on dependents
+- Undocumented breaking changes
+- Cascading effects, compatibility
 
-### Fase 3 — Consolidação
-1. Coletar findings dos 4 revisores
-2. Remover duplicatas
-3. Marcar conflitos: "⚠️ Conflito" se revisores discordam
-4. Classificar por severidade
+### Phase 3 — Consolidation
+1. Collect findings from the 4 reviewers
+2. Remove duplicates
+3. Flag conflicts: "⚠️ Conflict" when reviewers disagree
+4. Classify by severity
 
-### Fase 4 — Relatório
+### Phase 4 — Report
 
 ```
-## Review Deep — Relatório Consolidado
+## Review Deep — Consolidated Report
 
-### Revisores
-| Revisor | Findings | Críticos | Importantes |
-|---------|----------|----------|-------------|
+### Reviewers
+| Reviewer | Findings | Critical | Important |
+|----------|----------|----------|-----------|
 
-### 🔴 Crítico (bloqueia merge)
-- **[Revisor]** [arquivo:linha] Descrição
-  - Impacto: [...]
+### 🔴 Critical (blocks merge)
+- **[Reviewer]** [file:line] Description
+  - Impact: [...]
   - Fix: [...]
 
-### 🟡 Importante (deve corrigir)
-### 🔵 Sugestão
+### 🟡 Important (must fix)
+### 🔵 Suggestion
 
-### ⚠️ Conflitos entre revisores
-- [Revisor A] diz X vs [Revisor B] diz Y
+### ⚠️ Conflicts between reviewers
+- [Reviewer A] says X vs [Reviewer B] says Y
 
-### ✅ Pontos positivos
+### ✅ Positive points
 
-## Veredicto: PASS | FAIL | NEEDS DISCUSSION
-**Confiança: X/5**
+## Verdict: PASS | FAIL | NEEDS DISCUSSION
+**Confidence: X/5**
 ```
 
-## Quando usar
-- `/review` = 1 pass sequencial, rápido, mudanças pequenas
-- `/review-deep` = 4 agentes paralelos, PRs grandes ou críticos
+## When to use
+- `/review` = 1 sequential pass, fast, small changes
+- `/review-deep` = 4 parallel agents, large or critical PRs
