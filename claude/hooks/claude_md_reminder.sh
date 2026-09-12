@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # claude_md_reminder.sh — UserPromptSubmit hook
-# Re-injeta CLAUDE.md do projeto a cada 3 prompts para prevenir context drift.
-# Inspirado no Ring (LerianStudio) claude-md-reminder.sh.
+# Re-injects the project's CLAUDE.md every 3 prompts to prevent context drift.
+# Inspired by Ring (LerianStudio) claude-md-reminder.sh.
 
 SESSION_ID="${CLAUDE_SESSION_ID:-$$}"
 STATE_FILE="/tmp/.claude_reminder_${SESSION_ID}.count"
 
-# Inicializar contador
+# Initialize the counter
 [ ! -f "$STATE_FILE" ] && echo 0 > "$STATE_FILE"
 COUNT=$(cat "$STATE_FILE" 2>/dev/null || echo 0)
 COUNT=$((COUNT + 1))
 echo "$COUNT" > "$STATE_FILE"
 
-# Só atuar a cada 3 prompts
+# Act only on every third prompt
 [ $((COUNT % 3)) -ne 0 ] && exit 0
 
-# Buscar CLAUDE.md hierarquicamente
+# Look for CLAUDE.md up the directory tree
 CLAUDE_MD=""
 for candidate in "./CLAUDE.md" "../CLAUDE.md" "../../CLAUDE.md" "$HOME/.claude/CLAUDE.md"; do
     if [ -f "$candidate" ]; then
@@ -26,10 +26,37 @@ done
 
 [ -z "$CLAUDE_MD" ] && exit 0
 
-# Extrair primeiras 50 linhas (essência das regras)
-RULES=$(head -50 "$CLAUDE_MD" 2>/dev/null | tr '"' "'" | tr '\n' ' ' | sed 's/[[:cntrl:]]/ /g')
+# Cut at a section boundary rather than mid-rule: read past the target line
+# until the next top-level heading, and stop at the hard limit if the file has
+# no heading there. A heading inside a fenced code block is not a boundary.
+TARGET_LINES=50
+LIMIT_LINES=100
 
-# Montar contexto de reforço
-CONTEXT="REFORÇO (prompt #${COUNT}): Responda em PT-BR. Regra dos 3 arquivos ativa. Auto-triggers de agentes ativos. Skills: /review /review-deep /ship /refactor /test /tdd /security /debug /handoff /compact /perf /dispatch /explore /contextualize /brainstorm /boot /agent-memory /task-tracking."
+RULES=$(awk -v target="$TARGET_LINES" -v limit="$LIMIT_LINES" '
+    /^```/                                        { fence = !fence }
+    NR > target && !fence && /^#/ && !/^###/      { exit }
+    NR > limit                                    { exit }
+                                                  { print }
+' "$CLAUDE_MD" 2>/dev/null)
 
-printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"%s"}}' "$CONTEXT"
+[ -z "$RULES" ] && exit 0
+
+# Build the reinforcement context: the reminder, then the rules themselves
+CONTEXT="REINFORCEMENT (prompt #${COUNT}): Respond in English. The 3-file rule is active. Agent auto-triggers are active. Skills: /review /review-deep /ship /refactor /test /tdd /security /debug /handoff /compact /perf /dispatch /explore /contextualize /brainstorm /boot /agent-memory /task-tracking.
+
+Rules in effect, from ${CLAUDE_MD}:
+
+${RULES}"
+
+# The rules are arbitrary Markdown, so the JSON is built by a tool that escapes
+# it. A hand-built string breaks on the first backslash or quote in the file.
+if command -v jq &>/dev/null; then
+    jq -cn --arg ctx "$CONTEXT" \
+        '{hookSpecificOutput:{hookEventName:"UserPromptSubmit",additionalContext:$ctx}}'
+else
+    CONTEXT="$CONTEXT" python3 -c "
+import json, os
+print(json.dumps({'hookSpecificOutput': {'hookEventName': 'UserPromptSubmit',
+                                         'additionalContext': os.environ['CONTEXT']}}))
+"
+fi

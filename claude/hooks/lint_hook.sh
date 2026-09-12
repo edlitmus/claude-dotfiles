@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Hook universal de lint/format para Claude Code
-# Executado automaticamente após Write, Edit e MultiEdit
-# Recebe JSON via stdin conforme documentação oficial
+# Universal lint and format hook for Claude Code
+# Runs automatically after Write, Edit and MultiEdit
+# Receives JSON on stdin, as the documentation describes
 
-# Ler input do stdin (formato oficial do Claude Code)
+# Read the input from stdin, in Claude Code's own format
 INPUT=$(cat)
 
-# Extrair file_path do JSON (jq preferido, fallback para python3)
-# Write e Edit têm tool_input.file_path direto
-# MultiEdit tem tool_input.edits[0].file_path
+# Extract file_path from the JSON, with jq preferred and python3 as the fallback
+# Write and Edit carry tool_input.file_path directly
+# MultiEdit carries tool_input.edits[0].file_path
 if command -v jq &>/dev/null; then
     FILE_PATH=$(echo "$INPUT" | jq -r '
         .tool_input.file_path //
@@ -27,15 +27,15 @@ print(fp)
 " 2>/dev/null)
 fi
 
-# Sair silenciosamente se não há arquivo para processar
+# Exit quietly when there is no file to process
 [ -z "$FILE_PATH" ] && exit 0
 [ ! -f "$FILE_PATH" ] && exit 0
 
-# Detectar extensão
+# Detect the extension
 EXT="${FILE_PATH##*.}"
 EXT=$(echo "$EXT" | tr '[:upper:]' '[:lower:]')
 
-# Verificar se a extensão é suportada
+# Handle only the extensions this hook supports
 case "$EXT" in
     py|ts|tsx|js|jsx|go|sql) ;;
     *) exit 0 ;;
@@ -48,14 +48,14 @@ case "$EXT" in
         if command -v ruff &>/dev/null; then
             ruff check --fix --quiet "$FILE_PATH" 2>/dev/null
             ruff format --quiet "$FILE_PATH" 2>/dev/null
-            echo "✅ ruff lint+format concluído"
+            echo "✅ ruff lint and format done"
         else
-            echo "⚠️ ruff não encontrado — pulando lint Python"
+            echo "⚠️ ruff not found, skipping the Python lint"
         fi
         ;;
 
     ts|tsx|js|jsx)
-        # Subir pelo dirname até encontrar package.json
+        # Walk up the directory tree until package.json appears
         PROJECT_DIR="$FILE_PATH"
         FOUND_PROJECT=""
         while true; do
@@ -64,14 +64,14 @@ case "$EXT" in
                 FOUND_PROJECT="$PROJECT_DIR"
                 break
             fi
-            # Chegou na raiz sem encontrar
+            # Reached the root without finding one
             if [ "$PROJECT_DIR" = "/" ] || [ "$PROJECT_DIR" = "." ]; then
                 break
             fi
         done
 
         if [ -z "$FOUND_PROJECT" ]; then
-            echo "⚠️ package.json não encontrado — pulando lint JS/TS"
+            echo "⚠️ package.json not found, skipping the JS/TS lint"
         else
             if command -v npx &>/dev/null; then
                 # ESLint
@@ -82,12 +82,12 @@ case "$EXT" in
                 prettier_status=$?
 
                 if [ $eslint_status -eq 0 ] && [ $prettier_status -eq 0 ]; then
-                    echo "✅ eslint+prettier concluído"
+                    echo "✅ eslint and prettier done"
                 else
-                    echo "⚠️ eslint/prettier concluído com avisos"
+                    echo "⚠️ eslint or prettier finished with warnings"
                 fi
             else
-                echo "⚠️ npx não encontrado — instale Node.js"
+                echo "⚠️ npx not found, install Node.js"
             fi
         fi
         ;;
@@ -95,22 +95,22 @@ case "$EXT" in
     go)
         if command -v gofmt &>/dev/null; then
             gofmt -w "$FILE_PATH" 2>/dev/null
-            echo "✅ gofmt concluído"
+            echo "✅ gofmt done"
         else
-            echo "⚠️ gofmt não encontrado — instale Go"
+            echo "⚠️ gofmt not found, install Go"
         fi
 
         if command -v golangci-lint &>/dev/null; then
             golangci-lint run --fix --quiet "$(dirname "$FILE_PATH")/..." 2>/dev/null
-            echo "✅ golangci-lint concluído"
+            echo "✅ golangci-lint done"
         else
-            echo "⚠️ golangci-lint não encontrado — pulando lint Go"
+            echo "⚠️ golangci-lint not found, skipping the Go lint"
         fi
         ;;
 
     sql)
         if command -v sqlfluff &>/dev/null; then
-            # Auto-detectar dialeto pelo path
+            # Guess the dialect from the path
             DIALECT="ansi"
             case "$FILE_PATH" in
                 *sagi*|*sqlserver*) DIALECT="tsql" ;;
@@ -118,9 +118,9 @@ case "$EXT" in
             esac
 
             sqlfluff fix --dialect "$DIALECT" --quiet "$FILE_PATH" 2>/dev/null
-            echo "✅ sqlfluff fix concluído (dialeto: $DIALECT)"
+            echo "✅ sqlfluff fix done (dialect: $DIALECT)"
         else
-            echo "⚠️ sqlfluff não encontrado — pulando lint SQL"
+            echo "⚠️ sqlfluff not found, skipping the SQL lint"
         fi
         ;;
 esac

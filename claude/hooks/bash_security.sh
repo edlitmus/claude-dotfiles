@@ -40,7 +40,7 @@ fi
 # Helper: block with a human-readable reason.
 # ---------------------------------------------------------------------------
 block() {
-    echo "BLOQUEADO: $1" >&2
+    echo "BLOCKED: $1" >&2
     exit 2
 }
 

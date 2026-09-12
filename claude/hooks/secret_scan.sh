@@ -101,9 +101,9 @@ for entry in "${PATTERNS[@]}"; do
         if [ "$FOUND" -eq 0 ]; then
             echo "" >&2
         fi
-        echo "⚠️  ALERTA: Possível segredo detectado em $FILE_PATH" >&2
-        echo "   Padrão: $pname" >&2
-        echo "   Revise o arquivo antes de commitar." >&2
+        echo "⚠️  ALERT: possible secret detected in $FILE_PATH" >&2
+        echo "   Pattern: $pname" >&2
+        echo "   Review the file before you commit it." >&2
         FOUND=1
     fi
 done
