@@ -55,7 +55,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat); FILE=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // (.tool_input.edits[0].file_path // empty)' 2>/dev/null); case \"$FILE\" in *.env|*.env.*|*credentials*|*secret*|*.pem|*.key|*id_rsa*) echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"🔒 Sensitive file protected by this hook. Edit it by hand if it is really needed.\"}}'; exit 0;; .git/*|.claude/settings.json) echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"🔒 Configuration file protected.\"}}'; exit 0;; esac",
+            "command": "INPUT=$(cat); FILE=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // (.tool_input.edits[0].file_path // empty)' 2>/dev/null); case \"$FILE\" in */claude/hooks/*|*/.claude/hooks/*) ;; *.env|*.env.*|*credentials*|*secret*|*.pem|*.key|*id_rsa*) echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"🔒 Sensitive file protected by this hook. Edit it by hand if it is really needed.\"}}'; exit 0;; */.git/*|.git/*|*/claude/settings.json|*/.claude/settings.json|.claude/settings.json) echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"🔒 Configuration file protected.\"}}'; exit 0;; esac",
             "timeout": 5
           }
         ]

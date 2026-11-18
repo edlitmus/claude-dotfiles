@@ -34,7 +34,10 @@ if [ -f "pyproject.toml" ] || [ -f "requirements.txt" ] || [ -f "setup.py" ]; th
 fi
 
 if [ -f "go.mod" ]; then
-    MOD_NAME=$(head -1 go.mod 2>/dev/null | awk '{print $2}')
+    # go.mod is repo-controlled, and this value ends up in the model's context,
+    # so it is clamped to the characters a module path can legitimately use.
+    MOD_NAME=$(head -1 go.mod 2>/dev/null | awk '{print $2}' \
+        | tr -cd 'A-Za-z0-9._/@~-' | cut -c1-80)
     STACK="$STACK Go ($MOD_NAME);"
 fi
 
@@ -62,4 +65,18 @@ if [ -n "$STACK" ]; then
     CONTEXT="$CONTEXT Detected stack:$STACK"
 fi
 
-printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s"}}' "$CONTEXT"
+# The context embeds repo-derived text (the go.mod module name), so the JSON is
+# built by a tool that escapes it. The previous hand-built printf broke on the
+# first quote in that text — which silently dropped the WHOLE SessionStart
+# context — and let repo content inject its own keys into hookSpecificOutput.
+# Same reasoning as claude_md_reminder.sh.
+if command -v jq >/dev/null 2>&1; then
+    jq -cn --arg ctx "$CONTEXT" \
+        '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$ctx}}'
+else
+    CONTEXT="$CONTEXT" python3 -c "
+import json, os
+print(json.dumps({'hookSpecificOutput': {'hookEventName': 'SessionStart',
+                                         'additionalContext': os.environ['CONTEXT']}}))
+"
+fi

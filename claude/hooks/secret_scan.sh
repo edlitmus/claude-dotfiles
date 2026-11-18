@@ -61,7 +61,11 @@ fi
 # 3. Choose grep variant
 # ---------------------------------------------------------------------------
 
-if grep -P '' /dev/null 2>/dev/null; then
+# Probe with a pattern that can match, against input that has a line. The old
+# probe was "grep -P '' /dev/null", which exits 1 even where PCRE IS supported
+# because /dev/null has no lines — so -E was always chosen and the -P branch was
+# dead code. Every pattern below is valid in both dialects, so either is fine.
+if printf 'x\n' | grep -qP 'x' 2>/dev/null; then
     GP="-P"
 else
     GP="-E"
@@ -97,7 +101,11 @@ for entry in "${PATTERNS[@]}"; do
     pname="${entry%%|*}"
     pregex="${entry#*|}"
 
-    if grep -ql $GP "$pregex" "$FILE_PATH" 2>/dev/null; then
+    # -e is required: the "Private Key Block" pattern starts with "-----", so
+    # without it grep parsed the pattern as options, failed with "unrecognized
+    # option", and 2>/dev/null swallowed the error — private keys were NEVER
+    # detected. (-l dropped as well: -q already overrides it.)
+    if grep -q $GP -e "$pregex" "$FILE_PATH" 2>/dev/null; then
         if [ "$FOUND" -eq 0 ]; then
             echo "" >&2
         fi
