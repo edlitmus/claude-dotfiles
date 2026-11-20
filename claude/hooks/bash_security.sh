@@ -7,9 +7,10 @@
 # the command string, and exits 2 (block) with a message when a threat is found.
 #
 # Triggered by: PreToolUse / Bash
-# Exit codes:
-#   0 — command is safe, allow execution
-#   2 — command is dangerous, block execution
+# Verdicts:
+#   exit 0, no output  — command is safe, allow execution
+#   exit 0, "ask" JSON — command needs the user's approval before it runs
+#   exit 2             — command is dangerous, refuse it outright
 #
 # Tests: claude/hooks/tests/bash_security_test.sh — run them after any edit:
 #   bash claude/hooks/tests/bash_security_test.sh ~/.claude/hooks/bash_security.sh
@@ -23,7 +24,8 @@
 #
 # Failure policy: fail CLOSED. An unexpected internal error blocks the command
 # rather than waving it through — a hook that errors open is worse than one
-# that is occasionally inconvenient.
+# that is occasionally inconvenient. An unrecognised protection tier likewise
+# falls back to a refusal rather than to an approval prompt.
 # ---------------------------------------------------------------------------
 
 set -Eeuo pipefail
@@ -39,6 +41,29 @@ block() {
 	exit 2
 }
 
+# Hand the decision to the user instead of refusing it. Claude Code prompts for
+# approval when a PreToolUse hook prints this JSON and exits 0, which is what
+# lets a system change the user explicitly asked for go ahead.
+ask() {
+	local reason="$1"
+	if command -v jq >/dev/null 2>&1; then
+		jq -n --arg r "$reason" '{
+			hookSpecificOutput: {
+				hookEventName: "PreToolUse",
+				permissionDecision: "ask",
+				permissionDecisionReason: $r
+			}
+		}'
+	else
+		# Reasons are built from single command tokens, so a backslash and a
+		# double quote are the only characters that can break the JSON string.
+		local escaped="${reason//\\/\\\\}"
+		escaped="${escaped//\"/\\\"}"
+		printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"%s"}}\n' "$escaped"
+	fi
+	exit 0
+}
+
 # Strip one layer of surrounding quotes left over from whitespace tokenizing.
 unquote() {
 	local s="$1"
@@ -48,34 +73,55 @@ unquote() {
 }
 
 # ---------------------------------------------------------------------------
-# Directories we refuse to let a command write into. Echoes a label and returns
-# 0 when the path is protected.
+# Directories a command may not write into unchallenged. Sets protected_tier
+# and protected_label and returns 0 when the path is protected.
+#
+# Two tiers, because the two kinds of path fail differently:
+#   deny — credential stores. A mistaken approval leaks keys, and no later edit
+#          undoes that, so there is no approval path at all.
+#   ask  — system directories. These are ordinary administration on this
+#          machine; the user is asked, and an explicit request goes through.
 #
 # /usr/home/ is exempt: it is the FreeBSD-style home prefix (this machine's
 # $HOME), so writes there are normal user activity, not a system write. The
 # exemption is applied PER PATH — previously any command that mentioned
 # /usr/home/ anywhere also exempted its other /usr/ writes.
 # ---------------------------------------------------------------------------
-protected_label() {
+protected_tier=""
+protected_label=""
+
+classify_protected_path() {
 	local path
 	path="$(unquote "$1")"
+	protected_tier=""
+	protected_label=""
 	[[ -z "$path" ]] && return 1
 
 	# Credential stores are protected wherever they live, including inside the
 	# home directory that the /usr/home/ exemption below would otherwise clear.
 	case "$path" in
-		*/.ssh|*/.ssh/*|'~/.ssh'|'~/.ssh/'*)         echo "~/.ssh/";   return 0 ;;
-		*/.gnupg|*/.gnupg/*|'~/.gnupg'|'~/.gnupg/'*) echo "~/.gnupg/"; return 0 ;;
+		*/.ssh|*/.ssh/*|'~/.ssh'|'~/.ssh/'*)
+			protected_tier="deny"; protected_label="~/.ssh/";   return 0 ;;
+		*/.gnupg|*/.gnupg/*|'~/.gnupg'|'~/.gnupg/'*)
+			protected_tier="deny"; protected_label="~/.gnupg/"; return 0 ;;
 	esac
 
 	case "$path" in
 		/usr/home|/usr/home/*)  return 1 ;;
-		/etc|/etc/*)            echo "/etc/";  return 0 ;;
-		/boot|/boot/*)          echo "/boot/"; return 0 ;;
-		/usr|/usr/*)            echo "/usr/";  return 0 ;;
+		/etc|/etc/*)            protected_tier="ask"; protected_label="/etc/";  return 0 ;;
+		/boot|/boot/*)          protected_tier="ask"; protected_label="/boot/"; return 0 ;;
+		/usr|/usr/*)            protected_tier="ask"; protected_label="/usr/";  return 0 ;;
 	esac
 
 	return 1
+}
+
+# Verdict for a write to the path classify_protected_path just matched.
+refuse_write() {
+	case "$protected_tier" in
+		ask) ask   "$1" ;;
+		*)   block "$1" ;;
+	esac
 }
 
 # ---------------------------------------------------------------------------
@@ -224,7 +270,7 @@ check_segment() {
 	local segment="$1"
 	local depth="${2:-0}"
 	local -a tokens=() args=() real=() inner=()
-	local tok label target utility dest i
+	local tok target utility dest i
 	local want_next=0
 
 	(( depth > 3 )) && return 0
@@ -236,8 +282,8 @@ check_segment() {
 	for tok in "${tokens[@]}"; do
 		if (( want_next )); then
 			want_next=0
-			if label="$(protected_label "$tok")"; then
-				block "writing to $label (redirect into $tok)"
+			if classify_protected_path "$tok"; then
+				refuse_write "writing to $protected_label (redirect into $tok)"
 			fi
 			continue
 		fi
@@ -245,8 +291,8 @@ check_segment() {
 			'>'|'>>'|'>|'|'2>'|'2>>'|'&>'|'&>>'|'1>'|'1>>') want_next=1 ;;
 			*'>'*)
 				target="${tok##*>}"
-				if [[ -n "$target" ]] && label="$(protected_label "$target")"; then
-					block "writing to $label (redirect into $target)"
+				if [[ -n "$target" ]] && classify_protected_path "$target"; then
+					refuse_write "writing to $protected_label (redirect into $target)"
 				fi ;;
 		esac
 	done
@@ -269,29 +315,29 @@ check_segment() {
 			for (( i = 0; i < ${#real[@]}; i++ )); do
 				if [[ "$(unquote "${real[i]}")" == "-t" || "$(unquote "${real[i]}")" == "--target-directory" ]]; then
 					dest="${real[i+1]:-}"
-					if [[ -n "$dest" ]] && label="$(protected_label "$dest")"; then
-						block "writing to $label ($utility target $dest)"
+					if [[ -n "$dest" ]] && classify_protected_path "$dest"; then
+						refuse_write "writing to $protected_label ($utility target $dest)"
 					fi
 					return 0
 				fi
 			done
 			dest="${real[-1]}"
-			if label="$(protected_label "$dest")"; then
-				block "writing to $label ($utility destination $dest)"
+			if classify_protected_path "$dest"; then
+				refuse_write "writing to $protected_label ($utility destination $dest)"
 			fi ;;
 		tee)
 			# Every non-option argument to tee is a file it writes.
 			for tok in "${real[@]+"${real[@]}"}"; do
 				[[ "$tok" == -* ]] && continue
-				if label="$(protected_label "$tok")"; then
-					block "writing to $label (tee $tok)"
+				if classify_protected_path "$tok"; then
+					refuse_write "writing to $protected_label (tee $tok)"
 				fi
 			done ;;
 		dd)
 			for tok in "${real[@]+"${real[@]}"}"; do
 				if [[ "$(unquote "$tok")" == of=* ]] \
-					&& label="$(protected_label "${tok#*of=}")"; then
-					block "writing to $label (dd $tok)"
+					&& classify_protected_path "${tok#*of=}"; then
+					refuse_write "writing to $protected_label (dd $tok)"
 				fi
 			done ;;
 		sed)
@@ -299,16 +345,16 @@ check_segment() {
 			if printf '%s\n' "${real[@]+"${real[@]}"}" | grep -qE '^(-[a-zA-Z]*i|--in-place)'; then
 				for tok in "${real[@]+"${real[@]}"}"; do
 					[[ "$tok" == -* ]] && continue
-					if label="$(protected_label "$tok")"; then
-						block "writing to $label (in-place edit of $tok)"
+					if classify_protected_path "$tok"; then
+						refuse_write "writing to $protected_label (in-place edit of $tok)"
 					fi
 				done
 			fi ;;
 		rm|truncate)
 			for tok in "${real[@]+"${real[@]}"}"; do
 				[[ "$tok" == -* ]] && continue
-				if label="$(protected_label "$tok")"; then
-					block "modifying $label ($utility $tok)"
+				if classify_protected_path "$tok"; then
+					refuse_write "modifying $protected_label ($utility $tok)"
 				fi
 			done ;;
 		sh|bash|zsh|ksh|dash)

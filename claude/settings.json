@@ -47,7 +47,7 @@
       "Bash(wget * | sh)"
     ]
   },
-  "model": "claude-opus-5[1m]",
+  "model": "claude-opus-5",
   "hooks": {
     "PreToolUse": [
       {
@@ -155,6 +155,7 @@
   },
   "tui": "fullscreen",
   "theme": "dark",
+  "agentPushNotifEnabled": true,
   "autoMode": {
     "environment": [
       "### Org-wide",
@@ -199,5 +200,9 @@
       }
     }
   },
-  "agentPushNotifEnabled": true
+  "modelSettings": {
+    "claude-opus-5": {
+      "autoCompactWindow": 400000
+    }
+  }
 }
